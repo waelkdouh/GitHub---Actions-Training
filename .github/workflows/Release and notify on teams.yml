@@ -1,0 +1,38 @@
+name: Deploy and Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  release-process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 1. DEPLOYMENT STEP
+      - name: Deploy to Production
+        run: |
+          echo "Deploying new version..."
+          # Your deployment logic here
+          
+      # 2. GENERATE RELEASE NOTES
+      - name: Generate Release Notes
+        id: release_notes
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 3. NOTIFY STAKEHOLDERS (Microsoft Teams)
+      - name: Notify Stakeholders via Teams
+        uses: jasonit/teams-incoming-webhook-action@v1
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          webhook-url: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          title: "🚀 New Release Deployed"
+          summary: "Version ${{ github.event.release.tag_name }} is live."
