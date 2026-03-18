@@ -4,6 +4,11 @@ on:
   release:
     types: [published]
 
+# ADD THIS PART:
+permissions:
+  contents: write    # Required to create/update releases and generate notes
+  pull-requests: read # Helpful for the auto-generation of notes
+
 jobs:
   release-process:
     runs-on: ubuntu-latest
