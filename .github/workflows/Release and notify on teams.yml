@@ -28,11 +28,28 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. NOTIFY STAKEHOLDERS (Microsoft Teams)
+      # 3. NOTIFY STAKEHOLDERS (Microsoft Teams via Curl)
       - name: Notify Stakeholders via Teams
-        uses: jasonit/teams-incoming-webhook-action@v1
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          webhook-url: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          title: "🚀 New Release Deployed"
-          summary: "Version ${{ github.event.release.tag_name }} is live."
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{
+                "type": "MessageCard",
+                "context": "http://schema.org/extensions",
+                "themeColor": "0076D7",
+                "summary": "New Release Deployed",
+                "sections": [{
+                    "activityTitle": "🚀 New Release: ${{ github.event.release.tag_name }}",
+                    "activitySubtitle": "Status: Deployed to Production",
+                    "facts": [
+                        { "name": "Repository:", "value": "${{ github.repository }}" },
+                        { "name": "Author:", "value": "${{ github.actor }}" }
+                    ],
+                    "markdown": true
+                }],
+                "potentialAction": [{
+                    "@type": "OpenUri",
+                    "name": "View Release Notes",
+                    "targets": [{ "os": "default", "uri": "${{ github.event.release.html_url }}" }]
+                }]
+              }' \
+          ${{ secrets.TEAMS_WEBHOOK_URL }}
