@@ -1,12 +1,7 @@
-# Testing Framework
+# --- Testing Framework ---
 pytest==8.0.0
 pytest-cov==4.1.0
 
-# Core Dependencies (Examples)
-requests>=2.31.0
-pandas>=2.1.0
-numpy>=1.26.0
-
-# Development Tools
-black==24.1.1
-flake8==7.0.0
+# --- Dependencies ---
+# (Our calculator uses standard libraries, so no extra packages are needed yet.
+# But if you used 'requests' or 'pandas', you would list them here.)
