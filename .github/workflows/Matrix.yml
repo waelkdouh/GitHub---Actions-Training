@@ -1,15 +1,17 @@
 name: Python Package Testing
-run-name: Python Package Testing Workflow run by ${{ github.actor }}
-
-# Changed from [push, pull_request] to manual trigger
 on: 
   workflow_dispatch:
+    inputs:
+      log_level:
+        description: 'Logging Level'
+        default: 'INFO'
+        type: choice
+        options: [INFO, DEBUG]
 
 jobs:
   build:
     name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
     runs-on: ${{ matrix.os }}
-    
     strategy:
       fail-fast: false
       matrix:
@@ -20,16 +22,18 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python ${{ matrix.python-version }}
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
         run: |
+          echo "::group::Installing dependencies"
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt pytest-github-actions-annotate-failures
+          echo "::endgroup::"
 
       - name: Run tests
         run: |
-          pytest
+          pytest --log-level=${{ github.event.inputs.log_level }}
