@@ -1,0 +1,49 @@
+name: Python Manual-Only CI
+
+# This section defines the triggers. 
+# By only including 'workflow_dispatch', this workflow will NEVER run automatically.
+on:
+  workflow_dispatch: 
+    # Optional: You can add inputs here if you want to pass variables manually
+    # but for a standard cache test, an empty dispatch is sufficient.
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # Downloads your repository code
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          # The directory where pip stores downloaded .whl files on Ubuntu
+          path: ~/.cache/pip
+          
+          # The Key is the unique ID for the cache. 
+          # It uses a hash of your requirements file. 
+          # If requirements.txt is unchanged, the key stays the same and the cache is hit.
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          
+          # Restore-keys are the "Plan B". 
+          # If the exact key isn't found, it grabs the most recent cache starting with this prefix.
+          # This allows pip to reuse most files even if you've added one new dependency.
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          # Pip is smart: it checks ~/.cache/pip (the folder we just restored) 
+          # before downloading anything from the web.
+          pip install -r requirements.txt
+
+      - name: Verify Setup
+        run: |
+          python -c "print('Manual build successful and cache utilized.')"
