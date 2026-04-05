@@ -1,5 +1,8 @@
 name: Python CI
-on: [pull_request]
+on:
+  push:
+    branches:
+      - main  # This triggers when code is pushed (merged) into main
 
 jobs:
   test:
