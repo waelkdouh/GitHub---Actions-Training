@@ -1,6 +1,8 @@
 name: Python Deployment Pipeline
 
 on:
+  push:
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
