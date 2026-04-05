@@ -13,7 +13,7 @@ jobs:
 
       - name: Initialize Python Environment
         # Format: {owner}/{repo}@{ref}
-        uses: ./actions/python-setup
+        uses: ./.github/actions/python-setup
         with:
           python-version: '3.10'
 
