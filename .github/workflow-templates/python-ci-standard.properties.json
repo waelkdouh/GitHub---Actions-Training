@@ -1,0 +1,9 @@
+{
+  "name": "Python Enterprise CI",
+  "description": "Standardized pipeline for Python projects. Includes Ruff linting, Mypy type-checking, and Pytest.",
+  "iconName": "python",
+  "categories": [
+    "Python",
+    "Continuous Integration"
+  ]
+}
