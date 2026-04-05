@@ -1,4 +1,4 @@
-name: Python Manual-Only CI
+name: Caching
 
 # This section defines the triggers. 
 # By only including 'workflow_dispatch', this workflow will NEVER run automatically.
