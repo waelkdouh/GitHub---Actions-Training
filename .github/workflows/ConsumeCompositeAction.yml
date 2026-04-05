@@ -13,7 +13,7 @@ jobs:
 
       - name: Initialize Python Environment
         # Format: {owner}/{repo}@{ref}
-        uses: waelkdouh/GitHub---Actions-Training/actions/python-setup@main
+        uses: ./actions/python-setup
         with:
           python-version: '3.10'
 
