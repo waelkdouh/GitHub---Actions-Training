@@ -1,0 +1,50 @@
+name: Efficiency
+
+# 1. TRIGGER STRATEGY
+# workflow_dispatch enables the "Run workflow" button in the GitHub UI.
+on:
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you running this?'
+        required: false
+        default: 'Manual health check'
+
+# 2. CONCURRENCY MANAGEMENT
+# This section prevents resource waste by ensuring only one instance of 
+# this workflow runs on this branch at a time.
+concurrency:
+  # The 'group' defines what runs belong together. 
+  # If a new run starts with the same group ID, the 'cancel-in-progress' rule kicks in.
+  group: ${{ github.workflow }}-${{ github.ref }}
+  
+  # When set to true, GitHub kills any existing/running jobs in this group 
+  # to prioritize the most recent click of the button.
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    # 3. GLOBAL JOB TIMEOUT
+    # This is your ultimate safety net. If the entire job (all steps combined) 
+    # hangs for 15 minutes, GitHub will force-terminate it to save billing minutes.
+    timeout-minutes: 15
+
+    steps:
+      # Step 1: Pull the code from the repository into the runner.
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Step 2: Execute the actual task.
+      - name: Run Manual Task
+        # 4. STEP-LEVEL TIMEOUT
+        # Individual steps can have their own limits. If this specific command 
+        # takes > 5 mins, it fails immediately without waiting for the 15-min job limit.
+        timeout-minutes: 5
+        run: |
+          echo "Running for reason: ${{ github.event.inputs.reason }}"
+          # Note: Even without complex installs, these logic gates protect your 
+          # environment from "zombie" processes that never finish.
+          npm install
+          npm test
