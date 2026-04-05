@@ -1,8 +1,7 @@
 name: Python CI
 on:
-  push:
-    branches:
-      - main  # This triggers when code is pushed (merged) into main
+  # Trigger is now exclusively manual via the "Run workflow" button
+  workflow_dispatch:
 
 jobs:
   test:
