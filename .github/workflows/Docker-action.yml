@@ -1,0 +1,28 @@
+name: Docker Action
+
+on:
+  workflow_dispatch:
+    inputs:
+      name_to_greet:
+        description: 'Who should the action greet?'
+        required: true
+        default: 'Wael'
+        type: string
+
+jobs:
+  hello_world_job:
+    runs-on: ubuntu-latest
+    name: A job to say hello
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Hello world action step
+        id: hello
+        # Point to the specific folder where your action.yml lives
+        uses: ./.github/actions/DockerAction
+        with:
+          my_name: ${{ inputs.name_to_greet }}
+
+      - name: Get the output
+        run: echo "The greeting was ${{ steps.hello.outputs.greeting }}"
