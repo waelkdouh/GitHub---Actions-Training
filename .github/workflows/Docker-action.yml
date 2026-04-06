@@ -1,4 +1,4 @@
-name: Docker Action
+name: Consume Docker Action
 
 on:
   workflow_dispatch:
