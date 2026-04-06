@@ -1,0 +1,21 @@
+name: 'Hello JS Action'
+description: 'Greet someone using JavaScript'
+author: 'octocat@github.com'
+
+inputs:
+  my_name:
+    description: 'Who to greet'
+    required: true
+    default: 'World'
+
+outputs:
+  greeting:
+    description: 'Full greeting'
+
+runs:
+  using: 'node20'
+  main: 'index.js'
+
+branding:
+  icon: 'mic'
+  color: 'purple'
