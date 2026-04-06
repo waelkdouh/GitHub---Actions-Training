@@ -1,0 +1,23 @@
+name: 'Hello Action'
+description: 'Greet someone'
+author: 'wael@github.com'
+
+inputs:
+  my_name:
+    description: 'Who to greet'
+    required: true
+    default: 'Wael'
+
+outputs:
+  greeting:
+    description: 'Full greeting'
+
+runs:
+  using: 'docker'
+  image: 'Dockerfile'
+  args:
+    - ${{ inputs.my_name }}
+
+branding:
+  icon: 'mic'
+  color: 'purple'
