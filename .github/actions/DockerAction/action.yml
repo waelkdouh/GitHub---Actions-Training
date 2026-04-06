@@ -1,4 +1,4 @@
-name: 'Hello Action'
+name: 'Hello Docker Action'
 description: 'Greet someone'
 author: 'octocat@github.com'
 
