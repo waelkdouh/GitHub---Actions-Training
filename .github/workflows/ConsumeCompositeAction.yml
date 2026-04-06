@@ -1,4 +1,4 @@
-name: Python CI
+name: Consume Composite Action
 on:
   # Trigger is now exclusively manual via the "Run workflow" button
   workflow_dispatch:
