@@ -33,7 +33,7 @@ Before starting the labs, ensure you have the following:
 | **GitHub Account** | Free or Pro account at [github.com](https://github.com) |
 | **Git** | Installed locally — [Download Git](https://git-scm.com/downloads) |
 | **Python 3.9+** | Installed locally — [Download Python](https://www.python.org/downloads/) |
-| **Node.js 20+** | Required for Lab 8 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
+| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 8 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
 | **npm** | Comes bundled with Node.js |
 | **Azure Subscription** | Required for Lab 9 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
 | **Azure CLI** | Required for Lab 9 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
