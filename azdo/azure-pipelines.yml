@@ -1,0 +1,50 @@
+trigger:
+- main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  buildConfiguration: 'Release'
+  deploymentEnv: 'Staging'
+
+stages:
+- stage: Build
+  displayName: 'Build and Unit Test'
+  jobs:
+  - job: BuildJob
+    displayName: 'Compile Source'
+    steps:
+    - script: echo "Restoring dependencies..."
+      displayName: 'Restore'
+    
+    - script: echo "Running build in $(buildConfiguration) mode..."
+      displayName: 'Build'
+
+    - task: PublishBuildArtifacts@1
+      inputs:
+        PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+        ArtifactName: 'drop'
+        publishLocation: 'Container'
+
+- stage: Test
+  displayName: 'Integration Tests'
+  dependsOn: Build
+  jobs:
+  - job: RunTests
+    steps:
+    - script: echo "Running integration tests for $(deploymentEnv)..."
+      displayName: 'Test Step'
+
+- stage: Deploy
+  displayName: 'Deploy to Staging'
+  dependsOn: Test
+  condition: succeeded()
+  jobs:
+  - deployment: DeployWeb
+    environment: 'Staging'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - script: echo "Deploying to Azure App Service..."
