@@ -1,4 +1,4 @@
-name: Local Runner Test
+name: Self Hosted Runner
 # Change 'on: [push]' to 'on: workflow_dispatch'
 on: 
   workflow_dispatch:
