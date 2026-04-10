@@ -1,0 +1,43 @@
+name: demo-org/demo-project
+on:
+  workflow_dispatch:
+env:
+  buildConfiguration: Release
+  deploymentEnv: Staging
+jobs:
+  Build-BuildJob:
+    name: Compile Source
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: Restore
+      run: echo "Restoring dependencies..."
+    - name: Build
+      run: echo "Running build in ${{ env.buildConfiguration }} mode..."
+    - uses: actions/upload-artifact@v4.1.0
+      with:
+        name: drop
+        path: "${{ runner.temp }}"
+  Test-RunTests:
+    needs:
+    - Build-BuildJob
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: Test Step
+      run: echo "Running integration tests for ${{ env.deploymentEnv }}..."
+  Deploy-DeployWeb:
+    needs:
+    - Test-RunTests
+    runs-on: ubuntu-latest
+    environment:
+      name: Staging
+    if: success() && github.RUN_NUMBER == 1
+    steps:
+    - name: checkout
+      uses: actions/checkout@v4.1.0
+    - name: download artifact
+      uses: actions/download-artifact@v4.1.0
+    - run: echo "Deploying to Azure App Service..."
