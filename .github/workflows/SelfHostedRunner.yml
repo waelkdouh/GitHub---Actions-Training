@@ -1,0 +1,13 @@
+name: Local Runner Test
+# Change 'on: [push]' to 'on: workflow_dispatch'
+on: 
+  workflow_dispatch:
+
+jobs:
+  check-local-system:
+    runs-on: self-hosted
+    steps:
+      - name: Who am I?
+        run: whoami
+      - name: Where am I?
+        run: pwd
