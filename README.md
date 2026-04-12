@@ -11,11 +11,11 @@ A comprehensive, hands-on training repository covering GitHub Actions fundamenta
 - [Lab 1: Simple Workflow](#lab-1-simple-workflow)
 - [Lab 2: Release & Notify on Microsoft Teams](#lab-2-release-notify-on-microsoft-teams)
 - [Lab 3: Python App Code, Reusable Workflow, and Matrix Testing](#lab-3-python-app-code-reusable-workflow-and-matrix-testing)
-- [Lab 4: Caching Dependencies](#lab-4-caching-dependencies)
-- [Lab 5: Composite Action — Python Environment Setup](#lab-5-composite-action-python-environment-setup)
-- [Lab 6: Docker Action — Hello Docker](#lab-6-docker-action-hello-docker)
-- [Lab 7: JavaScript Action — Hello JS](#lab-7-javascript-action-hello-js)
-- [Lab 8: Environments & Deployment to Azure](#lab-8-environments-deployment-to-azure)
+- [Lab 4: Environments & Deployment to Azure](#lab-4-environments-deployment-to-azure)
+- [Lab 5: Caching Dependencies](#lab-5-caching-dependencies)
+- [Lab 6: Composite Action — Python Environment Setup](#lab-6-composite-action-python-environment-setup)
+- [Lab 7: Docker Action — Hello Docker](#lab-7-docker-action-hello-docker)
+- [Lab 8: JavaScript Action — Hello JS](#lab-8-javascript-action-hello-js)
 - [Lab 9: Efficiency — Concurrency, Timeouts & Inputs](#lab-9-efficiency-concurrency-timeouts-inputs)
 
 ---
@@ -29,10 +29,10 @@ Before starting the labs, ensure you have the following:
 | **GitHub Account** | Free or Pro account at [github.com](https://github.com) |
 | **Git** | Installed locally — [Download Git](https://git-scm.com/downloads) |
 | **Python 3.9+** | Installed locally — [Download Python](https://www.python.org/downloads/) |
-| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 7 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
+| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 8 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
 | **npm** | Comes bundled with Node.js |
-| **Azure Subscription** | Required for Lab 8 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
-| **Azure CLI** | Required for Lab 8 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
+| **Azure Subscription** | Required for Lab 4 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
+| **Azure CLI** | Required for Lab 4 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | **VS Code (recommended)** | [Download VS Code](https://code.visualstudio.com/) |
 
 ---
@@ -43,11 +43,11 @@ Before starting the labs, ensure you have the following:
 GitHub---Actions-Training/
 ├── .github/
 │   ├── actions/
-│   │   ├── DockerAction/          # Lab 6 — Custom Docker action
+│   │   ├── DockerAction/          # Lab 7 — Custom Docker action
 │   │   │   ├── action.yml
 │   │   │   ├── Dockerfile
 │   │   │   └── entrypoint.sh
-│   │   ├── JavaScriptAction/      # Lab 7 — Custom JavaScript action
+│   │   ├── JavaScriptAction/      # Lab 8 — Custom JavaScript action
 │   │   │   ├── action.yml
 │   │   │   ├── index.js
 │   │   │   ├── package.json
@@ -55,18 +55,18 @@ GitHub---Actions-Training/
 │   │   │   ├── dist/
 │   │   │   │   └── index.js       # Bundled output (committed)
 │   │   │   └── node_modules/      # Git-ignored
-│   │   └── python-setup/          # Lab 5 — Custom Composite action
+│   │   └── python-setup/          # Lab 6 — Custom Composite action
 │   │       └── action.yml
 │   └── workflows/
 │       ├── SimpleWorkflow.yml                # Lab 1
 │       ├── Release and notify on teams.yml   # Lab 2
-│       ├── Caching.yml                       # Lab 4
+│       ├── Caching.yml                       # Lab 5
 │       ├── python-standard-checks.yml        # Lab 3 (reusable workflow)
 │       ├── Python Package Testing.yml        # Lab 3
-│       ├── ConsumeCompositeAction.yml        # Lab 5
-│       ├── ConsumeDockerAction.yml           # Lab 6
-│       ├── ConsumeJavaScriptAction.yml       # Lab 7
-│       ├── environments.yml                  # Lab 8
+│       ├── ConsumeCompositeAction.yml        # Lab 6
+│       ├── ConsumeDockerAction.yml           # Lab 7
+│       ├── ConsumeJavaScriptAction.yml       # Lab 8
+│       ├── environments.yml                  # Lab 4
 │       └── Efficiency.yml                    # Lab 9
 ├── src/
 │   ├── __init__.py
@@ -330,7 +330,7 @@ You should see **5 passed** tests.
 
 #### Part 1: Reusable Workflow — Python Standard Checks
 
-**Goal:** Create a reusable workflow (called via `workflow_call`) that runs Flake8 linting and Mypy type checking. This workflow is consumed by Lab 6.
+**Goal:** Create a reusable workflow (called via `workflow_call`) that runs Flake8 linting and Mypy type checking. This workflow is consumed by Lab 7.
 
 ##### Step 1 — Create the Reusable Workflow
 
@@ -467,7 +467,177 @@ jobs:
 ---
 
 
-### Lab 4: Caching Dependencies
+### Lab 4: Environments & Deployment to Azure
+
+**Goal:** Set up GitHub Environments with an approval gate and deploy a Python app to Azure App Service (staging → production).
+
+#### Step 1 — Create Azure App Services
+
+You need **two** Azure App Services. Run the following Azure CLI commands:
+
+```bash
+# Login to Azure
+az login
+
+# Set variables
+RESOURCE_GROUP="GitHubActionsTraining-rg"
+LOCATION="eastus"
+STAGING_APP="GithubActionsWS"
+PRODUCTION_APP="GithubActionsWS-Prod"
+APP_SERVICE_PLAN="GitHubActionsTraining-plan"
+
+# Create a Resource Group
+az group create --name $RESOURCE_GROUP --location $LOCATION
+
+# Create an App Service Plan (Linux, Free tier)
+az appservice plan create \
+  --name $APP_SERVICE_PLAN \
+  --resource-group $RESOURCE_GROUP \
+  --sku F1 \
+  --is-linux
+
+# Create the Staging Web App (Python 3.11)
+az webapp create \
+  --name $STAGING_APP \
+  --resource-group $RESOURCE_GROUP \
+  --plan $APP_SERVICE_PLAN \
+  --runtime "PYTHON:3.11"
+
+# Create the Production Web App (Python 3.11)
+az webapp create \
+  --name $PRODUCTION_APP \
+  --resource-group $RESOURCE_GROUP \
+  --plan $APP_SERVICE_PLAN \
+  --runtime "PYTHON:3.11"
+```
+
+> **Note:** App names must be globally unique. If names are taken, choose different names and update the workflow accordingly.
+
+#### Step 2 — Download Publish Profiles
+
+1. Go to the [Azure Portal](https://portal.azure.com).
+2. Navigate to each App Service (`GithubActionsWS` and `GithubActionsWS-Prod`).
+3. Click **Download publish profile** from the Overview page.
+4. Save the `.PublishSettings` XML file content — you will need it in the next step.
+
+#### Step 3 — Configure GitHub Environments
+
+1. Go to your GitHub repository → **Settings** → **Environments**.
+
+**Create the Staging Environment:**
+
+2. Click **New environment** → name it `staging` → click **Configure environment**.
+3. Click **Add environment secret**:
+   - **Name:** `AZURE_WEBAPP_PUBLISH_PROFILE`
+   - **Value:** Paste the **entire contents** of the staging app's `.PublishSettings` file.
+
+**Create the Production Environment:**
+
+4. Go back to **Environments** → **New environment** → name it `production` → click **Configure environment**.
+5. Click **Add environment secret**:
+   - **Name:** `AZURE_WEBAPP_PUBLISH_PROFILE`
+   - **Value:** Paste the **entire contents** of the production app's `.PublishSettings` file.
+6. Under **Environment protection rules**, check **Required reviewers** and add yourself (or a teammate) as a reviewer. Click **Save protection rules**.
+
+#### Step 4 — Create the Workflow File
+
+Create `.github/workflows/environments.yml`:
+
+```yaml
+name: Python Deployment Pipeline
+
+on:
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+  deploy-staging:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: staging
+      url: https://GithubActionsWS.azurewebsites.net
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Deploy to Azure Web App (Staging)'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'GithubActionsWS'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
+
+  deploy-production:
+    needs: deploy-staging
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://GithubActionsWS-Prod.azurewebsites.net
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 'Deploy to Azure Web App (Production)'
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: 'GithubActionsWS-Prod'
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: .
+```
+
+> **Important:** Update `app-name` and `url` values if you chose different Azure App Service names.
+
+#### Step 5 — Key Concepts
+
+| Concept | Explanation |
+|---|---|
+| `environment: name:` | Links the job to a GitHub Environment and its secrets |
+| `environment: url:` | Displays a clickable deployment URL in the Actions UI |
+| `needs:` | Creates job dependencies (build → staging → production) |
+| `if: github.ref == 'refs/heads/main'` | Production only deploys when merging to main |
+| Required reviewers | Manual approval gate before production deployment |
+| Publish Profile | XML credential file downloaded from Azure App Service |
+
+#### Step 6 — Trigger the Workflow
+
+This workflow triggers on **pull requests** to `main`:
+
+1. Create a new branch:
+   ```bash
+   git checkout -b feature/test-deploy
+   ```
+2. Make a small change (e.g., edit `README.md`) and push:
+   ```bash
+   git add .
+   git commit -m "Test deployment pipeline"
+   git push origin feature/test-deploy
+   ```
+3. Open a **Pull Request** from `feature/test-deploy` → `main`.
+4. The workflow starts automatically. Observe:
+   - **build** runs first.
+   - **deploy-staging** deploys to the staging App Service.
+   - **deploy-production** waits for your **manual approval** (check your GitHub notifications or the Actions UI).
+
+---
+
+
+### Lab 5: Caching Dependencies
 
 **Goal:** Speed up workflow runs by caching pip dependencies between runs using `actions/cache@v4`.
 
@@ -530,7 +700,7 @@ jobs:
 
 ---
 
-### Lab 5: Composite Action — Python Environment Setup
+### Lab 6: Composite Action — Python Environment Setup
 
 **Goal:** Create a **Composite Action** that bundles Python setup, caching, and dependency installation into a single reusable step.
 
@@ -616,7 +786,7 @@ jobs:
 
 ---
 
-### Lab 6: Docker Action — Hello Docker
+### Lab 7: Docker Action — Hello Docker
 
 **Goal:** Create a custom **Docker Container Action** that greets a user and returns an output.
 
@@ -737,7 +907,7 @@ jobs:
 
 ---
 
-### Lab 7: JavaScript Action — Hello JS
+### Lab 8: JavaScript Action — Hello JS
 
 **Goal:** Create a custom **JavaScript Action** using the `@actions/core` package, bundle it with `@vercel/ncc`, and consume it from a workflow.
 
@@ -916,175 +1086,6 @@ git push
 1. Go to **Actions** → **Consume JavaScript Action** → **Run workflow**.
 2. Enter a name and click **Run workflow**.
 3. Expand the job — observe the greeting printed and the output captured (no Docker build step, so it runs faster than the Docker action).
-
----
-
-### Lab 8: Environments & Deployment to Azure
-
-**Goal:** Set up GitHub Environments with an approval gate and deploy a Python app to Azure App Service (staging → production).
-
-#### Step 1 — Create Azure App Services
-
-You need **two** Azure App Services. Run the following Azure CLI commands:
-
-```bash
-# Login to Azure
-az login
-
-# Set variables
-RESOURCE_GROUP="GitHubActionsTraining-rg"
-LOCATION="eastus"
-STAGING_APP="GithubActionsWS"
-PRODUCTION_APP="GithubActionsWS-Prod"
-APP_SERVICE_PLAN="GitHubActionsTraining-plan"
-
-# Create a Resource Group
-az group create --name $RESOURCE_GROUP --location $LOCATION
-
-# Create an App Service Plan (Linux, Free tier)
-az appservice plan create \
-  --name $APP_SERVICE_PLAN \
-  --resource-group $RESOURCE_GROUP \
-  --sku F1 \
-  --is-linux
-
-# Create the Staging Web App (Python 3.11)
-az webapp create \
-  --name $STAGING_APP \
-  --resource-group $RESOURCE_GROUP \
-  --plan $APP_SERVICE_PLAN \
-  --runtime "PYTHON:3.11"
-
-# Create the Production Web App (Python 3.11)
-az webapp create \
-  --name $PRODUCTION_APP \
-  --resource-group $RESOURCE_GROUP \
-  --plan $APP_SERVICE_PLAN \
-  --runtime "PYTHON:3.11"
-```
-
-> **Note:** App names must be globally unique. If names are taken, choose different names and update the workflow accordingly.
-
-#### Step 2 — Download Publish Profiles
-
-1. Go to the [Azure Portal](https://portal.azure.com).
-2. Navigate to each App Service (`GithubActionsWS` and `GithubActionsWS-Prod`).
-3. Click **Download publish profile** from the Overview page.
-4. Save the `.PublishSettings` XML file content — you will need it in the next step.
-
-#### Step 3 — Configure GitHub Environments
-
-1. Go to your GitHub repository → **Settings** → **Environments**.
-
-**Create the Staging Environment:**
-
-2. Click **New environment** → name it `staging` → click **Configure environment**.
-3. Click **Add environment secret**:
-   - **Name:** `AZURE_WEBAPP_PUBLISH_PROFILE`
-   - **Value:** Paste the **entire contents** of the staging app's `.PublishSettings` file.
-
-**Create the Production Environment:**
-
-4. Go back to **Environments** → **New environment** → name it `production` → click **Configure environment**.
-5. Click **Add environment secret**:
-   - **Name:** `AZURE_WEBAPP_PUBLISH_PROFILE`
-   - **Value:** Paste the **entire contents** of the production app's `.PublishSettings` file.
-6. Under **Environment protection rules**, check **Required reviewers** and add yourself (or a teammate) as a reviewer. Click **Save protection rules**.
-
-#### Step 4 — Create the Workflow File
-
-Create `.github/workflows/environments.yml`:
-
-```yaml
-name: Python Deployment Pipeline
-
-on:
-  pull_request:
-    branches: [ "main" ]
-
-jobs:
-  build:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.14'
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-
-  deploy-staging:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: staging
-      url: https://GithubActionsWS.azurewebsites.net
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 'Deploy to Azure Web App (Staging)'
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'GithubActionsWS'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
-
-  deploy-production:
-    needs: deploy-staging
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    environment:
-      name: production
-      url: https://GithubActionsWS-Prod.azurewebsites.net
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: 'Deploy to Azure Web App (Production)'
-        uses: azure/webapps-deploy@v2
-        with:
-          app-name: 'GithubActionsWS-Prod'
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-          package: .
-```
-
-> **Important:** Update `app-name` and `url` values if you chose different Azure App Service names.
-
-#### Step 5 — Key Concepts
-
-| Concept | Explanation |
-|---|---|
-| `environment: name:` | Links the job to a GitHub Environment and its secrets |
-| `environment: url:` | Displays a clickable deployment URL in the Actions UI |
-| `needs:` | Creates job dependencies (build → staging → production) |
-| `if: github.ref == 'refs/heads/main'` | Production only deploys when merging to main |
-| Required reviewers | Manual approval gate before production deployment |
-| Publish Profile | XML credential file downloaded from Azure App Service |
-
-#### Step 6 — Trigger the Workflow
-
-This workflow triggers on **pull requests** to `main`:
-
-1. Create a new branch:
-   ```bash
-   git checkout -b feature/test-deploy
-   ```
-2. Make a small change (e.g., edit `README.md`) and push:
-   ```bash
-   git add .
-   git commit -m "Test deployment pipeline"
-   git push origin feature/test-deploy
-   ```
-3. Open a **Pull Request** from `feature/test-deploy` → `main`.
-4. The workflow starts automatically. Observe:
-   - **build** runs first.
-   - **deploy-staging** deploys to the staging App Service.
-   - **deploy-production** waits for your **manual approval** (check your GitHub notifications or the Actions UI).
 
 ---
 
