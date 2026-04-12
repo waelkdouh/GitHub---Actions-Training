@@ -8,19 +8,17 @@ A comprehensive, hands-on training repository covering GitHub Actions fundamenta
 
 - [Prerequisites](#prerequisites)
 - [Repository Structure](#repository-structure)
-- [Day 1 — GitHub Actions Fundamentals](#day-1--github-actions-fundamentals)
-  - [Lab 1: Simple Workflow](#lab-1-simple-workflow)
-  - [Lab 2: Python Application Code (src & tests)](#lab-2-python-application-code-src--tests)
-  - [Lab 3: Caching Dependencies](#lab-3-caching-dependencies)
-  - [Lab 4: Reusable Workflow — Python Standard Checks](#lab-4-reusable-workflow--python-standard-checks)
-  - [Lab 5: Matrix Testing — Python Package Testing](#lab-5-matrix-testing--python-package-testing)
-  - [Lab 6: Composite Action — Python Environment Setup](#lab-6-composite-action--python-environment-setup)
-  - [Lab 7: Docker Action — Hello Docker](#lab-7-docker-action--hello-docker)
-  - [Lab 8: JavaScript Action — Hello JS](#lab-8-javascript-action--hello-js)
-  - [Lab 9: Environments & Deployment to Azure](#lab-9-environments--deployment-to-azure)
-  - [Lab 10: Efficiency — Concurrency, Timeouts & Inputs](#lab-10-efficiency--concurrency-timeouts--inputs)
-  - [Lab 11: Release & Notify on Microsoft Teams](#lab-11-release--notify-on-microsoft-teams)
-- [Day 2 — (Coming Soon)](#day-2--coming-soon)
+- [Lab 1: Simple Workflow](#lab-1-simple-workflow)
+- [Lab 2: Python Application Code (src & tests)](#lab-2-python-application-code-src--tests)
+- [Lab 3: Caching Dependencies](#lab-3-caching-dependencies)
+- [Lab 4: Reusable Workflow — Python Standard Checks](#lab-4-reusable-workflow--python-standard-checks)
+- [Lab 5: Matrix Testing — Python Package Testing](#lab-5-matrix-testing--python-package-testing)
+- [Lab 6: Composite Action — Python Environment Setup](#lab-6-composite-action--python-environment-setup)
+- [Lab 7: Docker Action — Hello Docker](#lab-7-docker-action--hello-docker)
+- [Lab 8: JavaScript Action — Hello JS](#lab-8-javascript-action--hello-js)
+- [Lab 9: Environments & Deployment to Azure](#lab-9-environments--deployment-to-azure)
+- [Lab 10: Efficiency — Concurrency, Timeouts & Inputs](#lab-10-efficiency--concurrency-timeouts--inputs)
+- [Lab 11: Release & Notify on Microsoft Teams](#lab-11-release--notify-on-microsoft-teams)
 
 ---
 
@@ -82,10 +80,6 @@ GitHub---Actions-Training/
 ├── .gitignore
 └── README.md
 ```
-
----
-
-## Day 1 — GitHub Actions Fundamentals
 
 ---
 
@@ -1150,11 +1144,5 @@ jobs:
 4. Click **"Publish release"**.
 5. The workflow triggers automatically — check the **Actions** tab.
 6. After completion, check your Microsoft Teams channel for the notification card.
-
----
-
-## Day 2 — (Coming Soon)
-
-Future labs will cover advanced topics. Stay tuned!
 
 ---
