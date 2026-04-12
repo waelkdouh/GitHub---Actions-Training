@@ -9,16 +9,14 @@ A comprehensive, hands-on training repository covering GitHub Actions fundamenta
 - [Prerequisites](#prerequisites)
 - [Repository Structure](#repository-structure)
 - [Lab 1: Simple Workflow](#lab-1-simple-workflow)
-- [Lab 2: Release & Notify on Microsoft Teams](#lab-2-release--notify-on-microsoft-teams)
-- [Lab 3: Python Application Code (src & tests)](#lab-3-python-application-code-src--tests)
+- [Lab 2: Release & Notify on Microsoft Teams](#lab-2-release-notify-on-microsoft-teams)
+- [Lab 3: Python App Code, Reusable Workflow, and Matrix Testing](#lab-3-python-app-code-reusable-workflow-and-matrix-testing)
 - [Lab 4: Caching Dependencies](#lab-4-caching-dependencies)
-- [Lab 5: Reusable Workflow — Python Standard Checks](#lab-5-reusable-workflow--python-standard-checks)
-- [Lab 6: Matrix Testing — Python Package Testing](#lab-6-matrix-testing--python-package-testing)
-- [Lab 7: Composite Action — Python Environment Setup](#lab-7-composite-action--python-environment-setup)
-- [Lab 8: Docker Action — Hello Docker](#lab-8-docker-action--hello-docker)
-- [Lab 9: JavaScript Action — Hello JS](#lab-9-javascript-action--hello-js)
-- [Lab 10: Environments & Deployment to Azure](#lab-10-environments--deployment-to-azure)
-- [Lab 11: Efficiency — Concurrency, Timeouts & Inputs](#lab-11-efficiency--concurrency-timeouts--inputs)
+- [Lab 5: Composite Action — Python Environment Setup](#lab-5-composite-action-python-environment-setup)
+- [Lab 6: Docker Action — Hello Docker](#lab-6-docker-action-hello-docker)
+- [Lab 7: JavaScript Action — Hello JS](#lab-7-javascript-action-hello-js)
+- [Lab 8: Environments & Deployment to Azure](#lab-8-environments-deployment-to-azure)
+- [Lab 9: Efficiency — Concurrency, Timeouts & Inputs](#lab-9-efficiency-concurrency-timeouts-inputs)
 
 ---
 
@@ -31,10 +29,10 @@ Before starting the labs, ensure you have the following:
 | **GitHub Account** | Free or Pro account at [github.com](https://github.com) |
 | **Git** | Installed locally — [Download Git](https://git-scm.com/downloads) |
 | **Python 3.9+** | Installed locally — [Download Python](https://www.python.org/downloads/) |
-| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 9 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
+| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 7 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
 | **npm** | Comes bundled with Node.js |
-| **Azure Subscription** | Required for Lab 10 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
-| **Azure CLI** | Required for Lab 10 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
+| **Azure Subscription** | Required for Lab 8 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
+| **Azure CLI** | Required for Lab 8 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | **VS Code (recommended)** | [Download VS Code](https://code.visualstudio.com/) |
 
 ---
@@ -45,11 +43,11 @@ Before starting the labs, ensure you have the following:
 GitHub---Actions-Training/
 ├── .github/
 │   ├── actions/
-│   │   ├── DockerAction/          # Lab 8 — Custom Docker action
+│   │   ├── DockerAction/          # Lab 6 — Custom Docker action
 │   │   │   ├── action.yml
 │   │   │   ├── Dockerfile
 │   │   │   └── entrypoint.sh
-│   │   ├── JavaScriptAction/      # Lab 9 — Custom JavaScript action
+│   │   ├── JavaScriptAction/      # Lab 7 — Custom JavaScript action
 │   │   │   ├── action.yml
 │   │   │   ├── index.js
 │   │   │   ├── package.json
@@ -57,19 +55,19 @@ GitHub---Actions-Training/
 │   │   │   ├── dist/
 │   │   │   │   └── index.js       # Bundled output (committed)
 │   │   │   └── node_modules/      # Git-ignored
-│   │   └── python-setup/          # Lab 7 — Custom Composite action
+│   │   └── python-setup/          # Lab 5 — Custom Composite action
 │   │       └── action.yml
 │   └── workflows/
 │       ├── SimpleWorkflow.yml                # Lab 1
 │       ├── Release and notify on teams.yml   # Lab 2
 │       ├── Caching.yml                       # Lab 4
-│       ├── python-standard-checks.yml        # Lab 5 (reusable workflow)
-│       ├── Python Package Testing.yml        # Lab 6
-│       ├── ConsumeCompositeAction.yml        # Lab 7
-│       ├── ConsumeDockerAction.yml           # Lab 8
-│       ├── ConsumeJavaScriptAction.yml       # Lab 9
-│       ├── environments.yml                  # Lab 10
-│       └── Efficiency.yml                    # Lab 11
+│       ├── python-standard-checks.yml        # Lab 3 (reusable workflow)
+│       ├── Python Package Testing.yml        # Lab 3
+│       ├── ConsumeCompositeAction.yml        # Lab 5
+│       ├── ConsumeDockerAction.yml           # Lab 6
+│       ├── ConsumeJavaScriptAction.yml       # Lab 7
+│       ├── environments.yml                  # Lab 8
+│       └── Efficiency.yml                    # Lab 9
 ├── src/
 │   ├── __init__.py
 │   └── calculator.py              # Simple calculator module
@@ -237,7 +235,7 @@ jobs:
 6. After completion, check your Microsoft Teams channel for the notification card.
 
 ---
-### Lab 3: Python Application Code (src & tests)
+### Lab 3: Python App Code, Reusable Workflow, and Matrix Testing
 
 **Goal:** Set up the Python application and test files that multiple workflows depend on.
 
@@ -329,6 +327,146 @@ You should see **5 passed** tests.
 
 ---
 
+
+#### Part 1: Reusable Workflow — Python Standard Checks
+
+**Goal:** Create a reusable workflow (called via `workflow_call`) that runs Flake8 linting and Mypy type checking. This workflow is consumed by Lab 6.
+
+##### Step 1 — Create the Reusable Workflow
+
+Create `.github/workflows/python-standard-checks.yml`:
+
+```yaml
+name: Reusable Python Quality Check
+
+on:
+  workflow_call:
+    inputs:
+      python-version:
+        required: false
+        type: string
+        default: "3.11"
+    secrets:
+      API_TOKEN:
+        required: false
+
+jobs:
+  quality-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ inputs.python-version }}
+
+      - name: Install Linting Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install flake8 mypy
+
+      - name: Run Flake8 (Linting)
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+
+      - name: Run Mypy (Type Checking)
+        run: mypy . --ignore-missing-imports
+```
+
+##### Step 2 — Key Concepts
+
+| Concept | Explanation |
+|---|---|
+| `workflow_call` | Makes this workflow callable by other workflows (not manually) |
+| `inputs` | Parameters that the calling workflow can pass in |
+| `secrets` | Allows the caller to optionally pass secrets |
+| `flake8` | Python linter — checks for syntax errors and undefined names |
+| `mypy` | Static type checker for Python |
+
+> **Note:** This workflow cannot be triggered manually. It will be called from the **Python Package Testing** workflow in this lab.
+
+---
+
+
+#### Part 2: Matrix Testing — Python Package Testing
+
+**Goal:** Use a build matrix to test across multiple Python versions and operating systems, and call the reusable workflow from Part 1 as a prerequisite.
+
+##### Step 1 — Create the Workflow File
+
+Create `.github/workflows/Python Package Testing.yml`:
+
+```yaml
+name: Python Package Testing
+
+on:
+  workflow_dispatch:
+    inputs:
+      log_level:
+        description: 'Logging Level'
+        default: 'INFO'
+        type: choice
+        options: [INFO, DEBUG]
+
+jobs:
+  static-analysis:
+    uses: waelkdouh/GitHub---Actions-Training/.github/workflows/python-standard-checks.yml@main
+    with:
+      python-version: "3.11"
+
+  test:
+    needs: static-analysis
+    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.9', '3.10', '3.11']
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          pip install pytest pytest-github-actions-annotate-failures
+
+      - name: Run tests
+        run: |
+          pytest --log-level=${{ github.event.inputs.log_level }}
+```
+
+> **Important:** Replace `waelkdouh/GitHub---Actions-Training` in the `uses:` field with your own `<owner>/<repo>` if you forked this repository.
+
+##### Step 2 — Key Concepts
+
+| Concept | Explanation |
+|---|---|
+| `workflow_dispatch` with `inputs` | Manual trigger with a dropdown choice for log level |
+| `uses: ...workflow_call` | Calls the reusable workflow from Part 1 |
+| `needs: static-analysis` | Tests only run after linting passes |
+| `strategy.matrix` | Creates **6 jobs** (2 OS × 3 Python versions) |
+| `fail-fast: false` | All matrix jobs run even if one fails |
+
+##### Step 3 — Run & Observe
+
+1. Push all files to `main`.
+2. Go to **Actions** → **Python Package Testing** → **Run workflow**.
+3. Select a **Logging Level** (`INFO` or `DEBUG`) and run.
+4. Observe that the **static-analysis** job runs first, then **6 parallel test jobs** start.
+
+---
+
+
 ### Lab 4: Caching Dependencies
 
 **Goal:** Speed up workflow runs by caching pip dependencies between runs using `actions/cache@v4`.
@@ -392,144 +530,7 @@ jobs:
 
 ---
 
-### Lab 5: Reusable Workflow — Python Standard Checks
-
-**Goal:** Create a reusable workflow (called via `workflow_call`) that runs Flake8 linting and Mypy type checking. This workflow is consumed by Lab 6.
-
-#### Step 1 — Create the Reusable Workflow
-
-Create `.github/workflows/python-standard-checks.yml`:
-
-```yaml
-name: Reusable Python Quality Check
-
-on:
-  workflow_call:
-    inputs:
-      python-version:
-        required: false
-        type: string
-        default: "3.11"
-    secrets:
-      API_TOKEN:
-        required: false
-
-jobs:
-  quality-gate:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ inputs.python-version }}
-
-      - name: Install Linting Tools
-        run: |
-          python -m pip install --upgrade pip
-          pip install flake8 mypy
-
-      - name: Run Flake8 (Linting)
-        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-
-      - name: Run Mypy (Type Checking)
-        run: mypy . --ignore-missing-imports
-```
-
-#### Step 2 — Key Concepts
-
-| Concept | Explanation |
-|---|---|
-| `workflow_call` | Makes this workflow callable by other workflows (not manually) |
-| `inputs` | Parameters that the calling workflow can pass in |
-| `secrets` | Allows the caller to optionally pass secrets |
-| `flake8` | Python linter — checks for syntax errors and undefined names |
-| `mypy` | Static type checker for Python |
-
-> **Note:** This workflow cannot be triggered manually. It will be called from the **Python Package Testing** workflow in Lab 6.
-
----
-
-### Lab 6: Matrix Testing — Python Package Testing
-
-**Goal:** Use a build matrix to test across multiple Python versions and operating systems, and call the reusable workflow from Lab 5 as a prerequisite.
-
-#### Step 1 — Create the Workflow File
-
-Create `.github/workflows/Python Package Testing.yml`:
-
-```yaml
-name: Python Package Testing
-
-on:
-  workflow_dispatch:
-    inputs:
-      log_level:
-        description: 'Logging Level'
-        default: 'INFO'
-        type: choice
-        options: [INFO, DEBUG]
-
-jobs:
-  static-analysis:
-    uses: waelkdouh/GitHub---Actions-Training/.github/workflows/python-standard-checks.yml@main
-    with:
-      python-version: "3.11"
-
-  test:
-    needs: static-analysis
-    name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11']
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ matrix.python-version }}
-
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-          pip install pytest pytest-github-actions-annotate-failures
-
-      - name: Run tests
-        run: |
-          pytest --log-level=${{ github.event.inputs.log_level }}
-```
-
-> **Important:** Replace `waelkdouh/GitHub---Actions-Training` in the `uses:` field with your own `<owner>/<repo>` if you forked this repository.
-
-#### Step 2 — Key Concepts
-
-| Concept | Explanation |
-|---|---|
-| `workflow_dispatch` with `inputs` | Manual trigger with a dropdown choice for log level |
-| `uses: ...workflow_call` | Calls the reusable workflow from Lab 5 |
-| `needs: static-analysis` | Tests only run after linting passes |
-| `strategy.matrix` | Creates **6 jobs** (2 OS × 3 Python versions) |
-| `fail-fast: false` | All matrix jobs run even if one fails |
-
-#### Step 3 — Run & Observe
-
-1. Push all files to `main`.
-2. Go to **Actions** → **Python Package Testing** → **Run workflow**.
-3. Select a **Logging Level** (`INFO` or `DEBUG`) and run.
-4. Observe that the **static-analysis** job runs first, then **6 parallel test jobs** start.
-
----
-
-### Lab 7: Composite Action — Python Environment Setup
+### Lab 5: Composite Action — Python Environment Setup
 
 **Goal:** Create a **Composite Action** that bundles Python setup, caching, and dependency installation into a single reusable step.
 
@@ -615,7 +616,7 @@ jobs:
 
 ---
 
-### Lab 8: Docker Action — Hello Docker
+### Lab 6: Docker Action — Hello Docker
 
 **Goal:** Create a custom **Docker Container Action** that greets a user and returns an output.
 
@@ -736,7 +737,7 @@ jobs:
 
 ---
 
-### Lab 9: JavaScript Action — Hello JS
+### Lab 7: JavaScript Action — Hello JS
 
 **Goal:** Create a custom **JavaScript Action** using the `@actions/core` package, bundle it with `@vercel/ncc`, and consume it from a workflow.
 
@@ -918,7 +919,7 @@ git push
 
 ---
 
-### Lab 10: Environments & Deployment to Azure
+### Lab 8: Environments & Deployment to Azure
 
 **Goal:** Set up GitHub Environments with an approval gate and deploy a Python app to Azure App Service (staging → production).
 
@@ -1087,7 +1088,7 @@ This workflow triggers on **pull requests** to `main`:
 
 ---
 
-### Lab 11: Efficiency — Concurrency, Timeouts & Inputs
+### Lab 9: Efficiency — Concurrency, Timeouts & Inputs
 
 **Goal:** Learn workflow efficiency techniques: concurrency groups (prevent duplicate runs), job and step-level timeouts, and manual inputs.
 
