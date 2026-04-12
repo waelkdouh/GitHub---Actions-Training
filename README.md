@@ -9,16 +9,16 @@ A comprehensive, hands-on training repository covering GitHub Actions fundamenta
 - [Prerequisites](#prerequisites)
 - [Repository Structure](#repository-structure)
 - [Lab 1: Simple Workflow](#lab-1-simple-workflow)
-- [Lab 2: Python Application Code (src & tests)](#lab-2-python-application-code-src--tests)
-- [Lab 3: Caching Dependencies](#lab-3-caching-dependencies)
-- [Lab 4: Reusable Workflow — Python Standard Checks](#lab-4-reusable-workflow--python-standard-checks)
-- [Lab 5: Matrix Testing — Python Package Testing](#lab-5-matrix-testing--python-package-testing)
-- [Lab 6: Composite Action — Python Environment Setup](#lab-6-composite-action--python-environment-setup)
-- [Lab 7: Docker Action — Hello Docker](#lab-7-docker-action--hello-docker)
-- [Lab 8: JavaScript Action — Hello JS](#lab-8-javascript-action--hello-js)
-- [Lab 9: Environments & Deployment to Azure](#lab-9-environments--deployment-to-azure)
-- [Lab 10: Efficiency — Concurrency, Timeouts & Inputs](#lab-10-efficiency--concurrency-timeouts--inputs)
-- [Lab 11: Release & Notify on Microsoft Teams](#lab-11-release--notify-on-microsoft-teams)
+- [Lab 2: Release & Notify on Microsoft Teams](#lab-2-release--notify-on-microsoft-teams)
+- [Lab 3: Python Application Code (src & tests)](#lab-3-python-application-code-src--tests)
+- [Lab 4: Caching Dependencies](#lab-4-caching-dependencies)
+- [Lab 5: Reusable Workflow — Python Standard Checks](#lab-5-reusable-workflow--python-standard-checks)
+- [Lab 6: Matrix Testing — Python Package Testing](#lab-6-matrix-testing--python-package-testing)
+- [Lab 7: Composite Action — Python Environment Setup](#lab-7-composite-action--python-environment-setup)
+- [Lab 8: Docker Action — Hello Docker](#lab-8-docker-action--hello-docker)
+- [Lab 9: JavaScript Action — Hello JS](#lab-9-javascript-action--hello-js)
+- [Lab 10: Environments & Deployment to Azure](#lab-10-environments--deployment-to-azure)
+- [Lab 11: Efficiency — Concurrency, Timeouts & Inputs](#lab-11-efficiency--concurrency-timeouts--inputs)
 
 ---
 
@@ -31,10 +31,10 @@ Before starting the labs, ensure you have the following:
 | **GitHub Account** | Free or Pro account at [github.com](https://github.com) |
 | **Git** | Installed locally — [Download Git](https://git-scm.com/downloads) |
 | **Python 3.9+** | Installed locally — [Download Python](https://www.python.org/downloads/) |
-| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 8 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
+| **Node.js version 20.x. Don't get a newer version of Node as its not supported by Github Actions** | Required for Lab 9 (JavaScript Action) — [Download Node.js](https://nodejs.org/) |
 | **npm** | Comes bundled with Node.js |
-| **Azure Subscription** | Required for Lab 9 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
-| **Azure CLI** | Required for Lab 9 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
+| **Azure Subscription** | Required for Lab 10 (Environments & Deployment) — [Free Azure Account](https://azure.microsoft.com/free/) |
+| **Azure CLI** | Required for Lab 10 — [Install Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) |
 | **VS Code (recommended)** | [Download VS Code](https://code.visualstudio.com/) |
 
 ---
@@ -45,11 +45,11 @@ Before starting the labs, ensure you have the following:
 GitHub---Actions-Training/
 ├── .github/
 │   ├── actions/
-│   │   ├── DockerAction/          # Lab 7 — Custom Docker action
+│   │   ├── DockerAction/          # Lab 8 — Custom Docker action
 │   │   │   ├── action.yml
 │   │   │   ├── Dockerfile
 │   │   │   └── entrypoint.sh
-│   │   ├── JavaScriptAction/      # Lab 8 — Custom JavaScript action
+│   │   ├── JavaScriptAction/      # Lab 9 — Custom JavaScript action
 │   │   │   ├── action.yml
 │   │   │   ├── index.js
 │   │   │   ├── package.json
@@ -57,19 +57,19 @@ GitHub---Actions-Training/
 │   │   │   ├── dist/
 │   │   │   │   └── index.js       # Bundled output (committed)
 │   │   │   └── node_modules/      # Git-ignored
-│   │   └── python-setup/          # Lab 6 — Custom Composite action
+│   │   └── python-setup/          # Lab 7 — Custom Composite action
 │   │       └── action.yml
 │   └── workflows/
 │       ├── SimpleWorkflow.yml                # Lab 1
-│       ├── Caching.yml                       # Lab 3
-│       ├── python-standard-checks.yml        # Lab 4 (reusable workflow)
-│       ├── Python Package Testing.yml        # Lab 5
-│       ├── ConsumeCompositeAction.yml        # Lab 6
-│       ├── ConsumeDockerAction.yml           # Lab 7
-│       ├── ConsumeJavaScriptAction.yml       # Lab 8
-│       ├── environments.yml                  # Lab 9
-│       ├── Efficiency.yml                    # Lab 10
-│       └── Release and notify on teams.yml   # Lab 11
+│       ├── Release and notify on teams.yml   # Lab 2
+│       ├── Caching.yml                       # Lab 4
+│       ├── python-standard-checks.yml        # Lab 5 (reusable workflow)
+│       ├── Python Package Testing.yml        # Lab 6
+│       ├── ConsumeCompositeAction.yml        # Lab 7
+│       ├── ConsumeDockerAction.yml           # Lab 8
+│       ├── ConsumeJavaScriptAction.yml       # Lab 9
+│       ├── environments.yml                  # Lab 10
+│       └── Efficiency.yml                    # Lab 11
 ├── src/
 │   ├── __init__.py
 │   └── calculator.py              # Simple calculator module
@@ -135,7 +135,109 @@ jobs:
 
 ---
 
-### Lab 2: Python Application Code (src & tests)
+### Lab 2: Release & Notify on Microsoft Teams
+
+**Goal:** Automatically deploy and notify stakeholders via Microsoft Teams when a GitHub Release is published.
+
+#### Step 1 — Set Up Microsoft Teams Webhook
+
+1. In Microsoft Teams, go to the channel where you want notifications.
+2. Click the **"…"** (More options) → **Connectors** (or **Workflows** depending on your Teams version).
+3. Search for **"Incoming Webhook"** → **Configure**.
+4. Name it (e.g., "GitHub Releases") and copy the **Webhook URL**.
+
+#### Step 2 — Add the Secret to GitHub
+
+1. Go to your repository → **Settings** → **Secrets and variables** → **Actions**.
+2. Click **New repository secret**:
+   - **Name:** `TEAMS_WEBHOOK_URL`
+   - **Value:** Paste the webhook URL from Step 1.
+
+#### Step 3 — Create the Workflow File
+
+Create `.github/workflows/Release and notify on teams.yml`:
+
+```yaml
+name: Deploy and Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  release-process:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Deploy to Production
+        run: |
+          echo "Deploying new version..."
+          # Your deployment logic here
+
+      - name: Generate Release Notes
+        id: release_notes
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Stakeholders via Teams
+        run: |
+          curl -H 'Content-Type: application/json' \
+          -d '{
+                "type": "MessageCard",
+                "context": "http://schema.org/extensions",
+                "themeColor": "0076D7",
+                "summary": "New Release Deployed",
+                "sections": [{
+                    "activityTitle": "New Release: ${{ github.event.release.tag_name }}",
+                    "activitySubtitle": "Status: Deployed to Production",
+                    "facts": [
+                        { "name": "Repository:", "value": "${{ github.repository }}" },
+                        { "name": "Author:", "value": "${{ github.actor }}" }
+                    ],
+                    "markdown": true
+                }],
+                "potentialAction": [{
+                    "@type": "OpenUri",
+                    "name": "View Release Notes",
+                    "targets": [{ "os": "default", "uri": "${{ github.event.release.html_url }}" }]
+                }]
+              }' \
+          ${{ secrets.TEAMS_WEBHOOK_URL }}
+```
+
+#### Step 4 — Key Concepts
+
+| Concept | Explanation |
+|---|---|
+| `on: release: types: [published]` | Triggers when a GitHub Release is published |
+| `permissions` | Grants the `GITHUB_TOKEN` write access to contents |
+| `fetch-depth: 0` | Clones **full history** (needed for release note generation) |
+| `softprops/action-gh-release@v2` | Auto-generates release notes from PRs and commits |
+| `secrets.GITHUB_TOKEN` | Automatically provided by GitHub — no setup needed |
+| `secrets.TEAMS_WEBHOOK_URL` | Your Teams incoming webhook URL (configured in Step 2) |
+
+#### Step 5 — Trigger the Workflow
+
+1. Go to your repository → **Releases** (right sidebar or Code tab).
+2. Click **"Draft a new release"**.
+3. Create a new tag (e.g., `v1.0.0`), add a title and description.
+4. Click **"Publish release"**.
+5. The workflow triggers automatically — check the **Actions** tab.
+6. After completion, check your Microsoft Teams channel for the notification card.
+
+---
+### Lab 3: Python Application Code (src & tests)
 
 **Goal:** Set up the Python application and test files that multiple workflows depend on.
 
@@ -227,7 +329,7 @@ You should see **5 passed** tests.
 
 ---
 
-### Lab 3: Caching Dependencies
+### Lab 4: Caching Dependencies
 
 **Goal:** Speed up workflow runs by caching pip dependencies between runs using `actions/cache@v4`.
 
@@ -290,9 +392,9 @@ jobs:
 
 ---
 
-### Lab 4: Reusable Workflow — Python Standard Checks
+### Lab 5: Reusable Workflow — Python Standard Checks
 
-**Goal:** Create a reusable workflow (called via `workflow_call`) that runs Flake8 linting and Mypy type checking. This workflow is consumed by Lab 5.
+**Goal:** Create a reusable workflow (called via `workflow_call`) that runs Flake8 linting and Mypy type checking. This workflow is consumed by Lab 6.
 
 #### Step 1 — Create the Reusable Workflow
 
@@ -346,13 +448,13 @@ jobs:
 | `flake8` | Python linter — checks for syntax errors and undefined names |
 | `mypy` | Static type checker for Python |
 
-> **Note:** This workflow cannot be triggered manually. It will be called from the **Python Package Testing** workflow in Lab 5.
+> **Note:** This workflow cannot be triggered manually. It will be called from the **Python Package Testing** workflow in Lab 6.
 
 ---
 
-### Lab 5: Matrix Testing — Python Package Testing
+### Lab 6: Matrix Testing — Python Package Testing
 
-**Goal:** Use a build matrix to test across multiple Python versions and operating systems, and call the reusable workflow from Lab 4 as a prerequisite.
+**Goal:** Use a build matrix to test across multiple Python versions and operating systems, and call the reusable workflow from Lab 5 as a prerequisite.
 
 #### Step 1 — Create the Workflow File
 
@@ -413,7 +515,7 @@ jobs:
 | Concept | Explanation |
 |---|---|
 | `workflow_dispatch` with `inputs` | Manual trigger with a dropdown choice for log level |
-| `uses: ...workflow_call` | Calls the reusable workflow from Lab 4 |
+| `uses: ...workflow_call` | Calls the reusable workflow from Lab 5 |
 | `needs: static-analysis` | Tests only run after linting passes |
 | `strategy.matrix` | Creates **6 jobs** (2 OS × 3 Python versions) |
 | `fail-fast: false` | All matrix jobs run even if one fails |
@@ -427,7 +529,7 @@ jobs:
 
 ---
 
-### Lab 6: Composite Action — Python Environment Setup
+### Lab 7: Composite Action — Python Environment Setup
 
 **Goal:** Create a **Composite Action** that bundles Python setup, caching, and dependency installation into a single reusable step.
 
@@ -513,7 +615,7 @@ jobs:
 
 ---
 
-### Lab 7: Docker Action — Hello Docker
+### Lab 8: Docker Action — Hello Docker
 
 **Goal:** Create a custom **Docker Container Action** that greets a user and returns an output.
 
@@ -634,7 +736,7 @@ jobs:
 
 ---
 
-### Lab 8: JavaScript Action — Hello JS
+### Lab 9: JavaScript Action — Hello JS
 
 **Goal:** Create a custom **JavaScript Action** using the `@actions/core` package, bundle it with `@vercel/ncc`, and consume it from a workflow.
 
@@ -816,7 +918,7 @@ git push
 
 ---
 
-### Lab 9: Environments & Deployment to Azure
+### Lab 10: Environments & Deployment to Azure
 
 **Goal:** Set up GitHub Environments with an approval gate and deploy a Python app to Azure App Service (staging → production).
 
@@ -985,7 +1087,7 @@ This workflow triggers on **pull requests** to `main`:
 
 ---
 
-### Lab 10: Efficiency — Concurrency, Timeouts & Inputs
+### Lab 11: Efficiency — Concurrency, Timeouts & Inputs
 
 **Goal:** Learn workflow efficiency techniques: concurrency groups (prevent duplicate runs), job and step-level timeouts, and manual inputs.
 
@@ -1044,105 +1146,4 @@ jobs:
 
 ---
 
-### Lab 11: Release & Notify on Microsoft Teams
 
-**Goal:** Automatically deploy and notify stakeholders via Microsoft Teams when a GitHub Release is published.
-
-#### Step 1 — Set Up Microsoft Teams Webhook
-
-1. In Microsoft Teams, go to the channel where you want notifications.
-2. Click the **"…"** (More options) → **Connectors** (or **Workflows** depending on your Teams version).
-3. Search for **"Incoming Webhook"** → **Configure**.
-4. Name it (e.g., "GitHub Releases") and copy the **Webhook URL**.
-
-#### Step 2 — Add the Secret to GitHub
-
-1. Go to your repository → **Settings** → **Secrets and variables** → **Actions**.
-2. Click **New repository secret**:
-   - **Name:** `TEAMS_WEBHOOK_URL`
-   - **Value:** Paste the webhook URL from Step 1.
-
-#### Step 3 — Create the Workflow File
-
-Create `.github/workflows/Release and notify on teams.yml`:
-
-```yaml
-name: Deploy and Release
-
-on:
-  release:
-    types: [published]
-
-permissions:
-  contents: write
-  pull-requests: read
-
-jobs:
-  release-process:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Deploy to Production
-        run: |
-          echo "Deploying new version..."
-          # Your deployment logic here
-
-      - name: Generate Release Notes
-        id: release_notes
-        uses: softprops/action-gh-release@v2
-        with:
-          generate_release_notes: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notify Stakeholders via Teams
-        run: |
-          curl -H 'Content-Type: application/json' \
-          -d '{
-                "type": "MessageCard",
-                "context": "http://schema.org/extensions",
-                "themeColor": "0076D7",
-                "summary": "New Release Deployed",
-                "sections": [{
-                    "activityTitle": "New Release: ${{ github.event.release.tag_name }}",
-                    "activitySubtitle": "Status: Deployed to Production",
-                    "facts": [
-                        { "name": "Repository:", "value": "${{ github.repository }}" },
-                        { "name": "Author:", "value": "${{ github.actor }}" }
-                    ],
-                    "markdown": true
-                }],
-                "potentialAction": [{
-                    "@type": "OpenUri",
-                    "name": "View Release Notes",
-                    "targets": [{ "os": "default", "uri": "${{ github.event.release.html_url }}" }]
-                }]
-              }' \
-          ${{ secrets.TEAMS_WEBHOOK_URL }}
-```
-
-#### Step 4 — Key Concepts
-
-| Concept | Explanation |
-|---|---|
-| `on: release: types: [published]` | Triggers when a GitHub Release is published |
-| `permissions` | Grants the `GITHUB_TOKEN` write access to contents |
-| `fetch-depth: 0` | Clones **full history** (needed for release note generation) |
-| `softprops/action-gh-release@v2` | Auto-generates release notes from PRs and commits |
-| `secrets.GITHUB_TOKEN` | Automatically provided by GitHub — no setup needed |
-| `secrets.TEAMS_WEBHOOK_URL` | Your Teams incoming webhook URL (configured in Step 2) |
-
-#### Step 5 — Trigger the Workflow
-
-1. Go to your repository → **Releases** (right sidebar or Code tab).
-2. Click **"Draft a new release"**.
-3. Create a new tag (e.g., `v1.0.0`), add a title and description.
-4. Click **"Publish release"**.
-5. The workflow triggers automatically — check the **Actions** tab.
-6. After completion, check your Microsoft Teams channel for the notification card.
-
----
