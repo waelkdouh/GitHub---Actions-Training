@@ -21,7 +21,7 @@ jobs:
       - name: Deploy to Production
         run: |
           echo "Deploying new version..."
-          # Your deployment logic here
+          # Insert your deployment script/logic here
           
       # 2. GENERATE RELEASE NOTES
       - name: Generate Release Notes
@@ -32,44 +32,18 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. NOTIFY STAKEHOLDERS (Power Automate Workflow / Adaptive Card)
-      - name: Notify Stakeholders via Teams Workflow
+      # 3. NOTIFY STAKEHOLDERS
+      # This sends a flat JSON payload. 
+      # You build the Adaptive Card UI inside the Power Automate Designer.
+      - name: Notify Stakeholders via Teams
         run: |
-          curl -H 'Content-Type: application/json' \
+          curl -X POST \
+          -H 'Content-Type: application/json' \
           -d '{
-            "type": "message",
-            "attachments": [
-              {
-                "contentType": "application/vnd.microsoft.card.adaptive",
-                "content": {
-                  "type": "AdaptiveCard",
-                  "body": [
-                    {
-                      "type": "TextBlock",
-                      "size": "Medium",
-                      "weight": "Bolder",
-                      "text": "🚀 New Release: ${{ github.event.release.tag_name }}"
-                    },
-                    {
-                      "type": "FactSet",
-                      "facts": [
-                        { "title": "Repository:", "value": "${{ github.repository }}" },
-                        { "title": "Author:", "value": "${{ github.actor }}" },
-                        { "title": "Status:", "value": "Deployed to Production" }
-                      ]
-                    }
-                  ],
-                  "actions": [
-                    {
-                      "type": "Action.OpenUrl",
-                      "title": "View Release Notes",
-                      "url": "${{ github.event.release.html_url }}"
-                    }
-                  ],
-                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
-                  "version": "1.4"
-                }
-              }
-            ]
-          }' \
-          ${{ secrets.TEAMS_WEBHOOK_URL }}
+                "tag_name": "${{ github.event.release.tag_name }}",
+                "repository": "${{ github.repository }}",
+                "actor": "${{ github.actor }}",
+                "html_url": "${{ github.event.release.html_url }}",
+                "status": "Deployed to Production"
+              }' \
+          "${{ secrets.TEAMS_WEBHOOK_URL }}"
