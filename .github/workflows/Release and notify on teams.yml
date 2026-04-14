@@ -4,10 +4,9 @@ on:
   release:
     types: [published]
 
-# ADD THIS PART:
 permissions:
-  contents: write    # Required to create/update releases and generate notes
-  pull-requests: read # Helpful for the auto-generation of notes
+  contents: write
+  pull-requests: read
 
 jobs:
   release-process:
@@ -33,28 +32,44 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # 3. NOTIFY STAKEHOLDERS (Microsoft Teams via Curl)
-      - name: Notify Stakeholders via Teams
+      # 3. NOTIFY STAKEHOLDERS (Power Automate Workflow / Adaptive Card)
+      - name: Notify Stakeholders via Teams Workflow
         run: |
           curl -H 'Content-Type: application/json' \
           -d '{
-                "type": "MessageCard",
-                "context": "http://schema.org/extensions",
-                "themeColor": "0076D7",
-                "summary": "New Release Deployed",
-                "sections": [{
-                    "activityTitle": "🚀 New Release: ${{ github.event.release.tag_name }}",
-                    "activitySubtitle": "Status: Deployed to Production",
-                    "facts": [
-                        { "name": "Repository:", "value": "${{ github.repository }}" },
-                        { "name": "Author:", "value": "${{ github.actor }}" }
-                    ],
-                    "markdown": true
-                }],
-                "potentialAction": [{
-                    "@type": "OpenUri",
-                    "name": "View Release Notes",
-                    "targets": [{ "os": "default", "uri": "${{ github.event.release.html_url }}" }]
-                }]
-              }' \
+            "type": "message",
+            "attachments": [
+              {
+                "contentType": "application/vnd.microsoft.card.adaptive",
+                "content": {
+                  "type": "AdaptiveCard",
+                  "body": [
+                    {
+                      "type": "TextBlock",
+                      "size": "Medium",
+                      "weight": "Bolder",
+                      "text": "🚀 New Release: ${{ github.event.release.tag_name }}"
+                    },
+                    {
+                      "type": "FactSet",
+                      "facts": [
+                        { "title": "Repository:", "value": "${{ github.repository }}" },
+                        { "title": "Author:", "value": "${{ github.actor }}" },
+                        { "title": "Status:", "value": "Deployed to Production" }
+                      ]
+                    }
+                  ],
+                  "actions": [
+                    {
+                      "type": "Action.OpenUrl",
+                      "title": "View Release Notes",
+                      "url": "${{ github.event.release.html_url }}"
+                    }
+                  ],
+                  "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                  "version": "1.4"
+                }
+              }
+            ]
+          }' \
           ${{ secrets.TEAMS_WEBHOOK_URL }}
