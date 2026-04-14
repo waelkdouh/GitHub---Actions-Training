@@ -1,4 +1,4 @@
-# GitHub Actions Training Labs demo
+# GitHub Actions Training Labs
 
 Welcome to the **GitHub Actions Training** workshop! This guide contains **eight hands-on labs** that will walk you through creating, running, and understanding GitHub Actions workflows — from the simplest "Hello World" to advanced topics like self-hosted runners, pipeline migration, and AI-powered agentic workflows.
 
