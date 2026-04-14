@@ -635,12 +635,16 @@ GitHub---Actions-Training/
              python-version: ${{ matrix.python-version }}
 
          - name: Install dependencies
+           # Force Bash so the 'if' statement works on Windows
+           shell: bash
            run: |
              python -m pip install --upgrade pip
              if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
              pip install pytest pytest-github-actions-annotate-failures
 
          - name: Run tests
+           # Added shell: bash here as well for consistency across the matrix
+           shell: bash
            run: |
              pytest --log-level=${{ github.event.inputs.log_level }}
    ```
