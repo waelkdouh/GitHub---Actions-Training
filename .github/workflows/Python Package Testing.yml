@@ -37,7 +37,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
-        # Option 1: Force Bash so the 'if' statement works on Windows
+        # Force Bash so the 'if' statement works on Windows
         shell: bash
         run: |
           python -m pip install --upgrade pip
