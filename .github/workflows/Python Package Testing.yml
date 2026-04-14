@@ -11,14 +11,12 @@ on:
 
 jobs:
   # 1. Call the Reusable Workflow for standard linting/type checking
-  # This ensures the code is clean before we waste time/money testing on Windows/macOS
   static-analysis:
     uses: waelkdouh/GitHub---Actions-Training/.github/workflows/python-standard-checks.yml@main
     with:
       python-version: "3.11"
 
   # 2. Run the Matrix Tests
-  # We add 'needs: static-analysis' so tests only run if the code passes PEP 8
   test:
     needs: static-analysis
     name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
@@ -39,11 +37,15 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install dependencies
+        # Option 1: Force Bash so the 'if' statement works on Windows
+        shell: bash
         run: |
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
           pip install pytest pytest-github-actions-annotate-failures
 
       - name: Run tests
+        # Added shell: bash here as well for consistency across the matrix
+        shell: bash
         run: |
           pytest --log-level=${{ github.event.inputs.log_level }}
