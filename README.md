@@ -23,7 +23,7 @@ Welcome to the **GitHub Actions Training** workshop! This guide contains **eight
 
 ## Prerequisites
 
-Before starting the labs, make sure you have the following tools installed and configured on your machine.
+Before starting the labs, make sure you have the following tools installed and configured on your machine. These are the **only tools you need to get started** — additional tools (Python, Node.js, Docker) will be installed later when specific labs require them.
 
 ### 1. GitHub Account
 
@@ -55,42 +55,9 @@ Before starting the labs, make sure you have the following tools installed and c
 
   Follow the prompts and choose **HTTPS** and **Login with a web browser**.
 
-### 5. Python 3.9+ (for Labs 3–5)
+### 5. Create Your Own Repository
 
-- Download from <https://www.python.org/downloads/>.
-- During installation on Windows, **check "Add Python to PATH"**.
-- Verify:
-
-  ```bash
-  python --version
-  pip --version
-  ```
-
-### 6. Node.js 20+ (for Lab 6 – JavaScript Action)
-
-- Download from <https://nodejs.org> (LTS version recommended).
-- Verify:
-
-  ```bash
-  node --version
-  npm --version
-  ```
-
-### 7. Docker Desktop (for Labs 6 and 7)
-
-- Download from <https://www.docker.com/products/docker-desktop/>.
-- Install and start Docker Desktop.
-- Verify it's running:
-
-  ```bash
-  docker --version
-  ```
-
-- **Important:** Docker Desktop must be **running** before starting Labs 6 (Docker Action) and 7 (GitHub Actions Importer).
-
-### 8. Create Your Own Repository (Starter Code Only)
-
-> **Do NOT fork** the training repository — it already contains the completed solutions for every lab. Instead, you will create a **fresh repository** and copy only the starter source code into it.
+> **Do NOT fork** the training repository — it already contains the completed solutions for every lab. Instead, you will create a **fresh repository** and build it up as you go through each lab.
 
 1. Go to <https://github.com/new> and create a new repository:
    - **Repository name:** `GitHub---Actions-Training` (or any name you like)
@@ -98,164 +65,26 @@ Before starting the labs, make sure you have the following tools installed and c
    - Check **Add a README file**
    - Click **Create repository**
 
-2. Clone your new empty repository locally:
+2. Clone your new repository locally:
 
    ```bash
    git clone https://github.com/<YOUR-USERNAME>/GitHub---Actions-Training.git
    cd GitHub---Actions-Training
    ```
 
-3. Create the starter project files. These are the only files you need before starting the labs:
-
-   **Create the folder structure:**
-
-   ```bash
-   mkdir -p src tests azdo
-   ```
-
-   **Create `requirements.txt`:**
-
-   ```
-   # --- Testing Framework ---
-   pytest==8.0.0
-   pytest-cov==4.1.0
-   ```
-
-   **Create `src/__init__.py`:** (empty file)
-
-   ```bash
-   touch src/__init__.py
-   ```
-
-   **Create `src/calculator.py`:**
-
-   ```python
-   """
-   A simple calculator module for basic arithmetic operations.
-   """
-
-   def add(a, b):
-       """Returns the sum of two numbers."""
-       return a + b
-
-   def subtract(a, b):
-       """Returns the difference of two numbers."""
-       return a - b
-
-   def multiply(a, b):
-       """Returns the product of two numbers."""
-       return a * b
-
-   def divide(a, b):
-       """Returns the quotient of two numbers. Raises ValueError on division by zero."""
-       if b == 0:
-           raise ValueError("Cannot divide by zero!")
-       return a / b
-   ```
-
-   **Create `tests/__init__.py`:** (empty file)
-
-   ```bash
-   touch tests/__init__.py
-   ```
-
-   **Create `tests/test_math.py`:**
-
-   ```python
-   from src.calculator import add, subtract, multiply, divide
-   import pytest
-
-   def test_add():
-       assert add(10, 5) == 15
-
-   def test_subtract():
-       assert subtract(10, 5) == 5
-
-   def test_multiply():
-       assert multiply(10, 5) == 50
-
-   def test_divide():
-       assert divide(10, 5) == 2
-
-   def test_divide_by_zero():
-       with pytest.raises(ValueError):
-           divide(10, 0)
-   ```
-
-   **Create `azdo/azure-pipelines.yml`** (used in Lab 7):
-
-   ```yaml
-   trigger:
-   - main
-
-   pool:
-     vmImage: 'ubuntu-latest'
-
-   variables:
-     buildConfiguration: 'Release'
-     deploymentEnv: 'Staging'
-
-   stages:
-   - stage: Build
-     displayName: 'Build and Unit Test'
-     jobs:
-     - job: BuildJob
-       displayName: 'Compile Source'
-       steps:
-       - script: echo "Restoring dependencies..."
-         displayName: 'Restore'
-       
-       - script: echo "Running build in $(buildConfiguration) mode..."
-         displayName: 'Build'
-
-       - task: PublishBuildArtifacts@1
-         inputs:
-           PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-           ArtifactName: 'drop'
-           publishLocation: 'Container'
-
-   - stage: Test
-     displayName: 'Integration Tests'
-     dependsOn: Build
-     jobs:
-     - job: RunTests
-       steps:
-       - script: echo "Running integration tests for $(deploymentEnv)..."
-         displayName: 'Test Step'
-
-   - stage: Deploy
-     displayName: 'Deploy to Staging'
-     dependsOn: Test
-     condition: succeeded()
-     jobs:
-     - deployment: DeployWeb
-       environment: 'Staging'
-       strategy:
-         runOnce:
-           deploy:
-             steps:
-             - script: echo "Deploying to Azure App Service..."
-   ```
-
-4. Commit and push all starter files:
-
-   ```bash
-   git add .
-   git commit -m "Add starter source code for GitHub Actions training"
-   git push
-   ```
-
-5. Open the folder in VS Code:
+3. Open the folder in VS Code:
 
    ```bash
    code .
    ```
 
-> **Your repository should now contain ONLY:** `README.md`, `requirements.txt`, `src/`, `tests/`, and `azdo/`. The `.github/workflows/` and `.github/actions/` folders will be created as you complete each lab.
+> **That's it!** Your repository should now contain only the `README.md`. All other folders and files (`.github/workflows/`, `src/`, `tests/`, `azdo/`) will be created as you work through each lab.
 
 ---
 
 ## Repository Structure
+
+> **Note:** This shows the **final state** of the repository after completing all labs. You will build this structure incrementally — each lab tells you which files to create.
 
 ```
 GitHub---Actions-Training/
@@ -519,6 +348,108 @@ GitHub---Actions-Training/
 ## Lab 3 – Python Quality Checks and Package Testing
 
 **Goal:** Create a **reusable workflow** for Python linting/type-checking and a **caller workflow** that invokes it before running a test matrix across multiple operating systems and Python versions. Along the way, you will implement two important GitHub Actions features: **Starter/Reusable Workflows** and **Log Management Optimizations for Matrix Builds**.
+
+### Prerequisites — Install Python and Create Source Files
+
+This lab (and Labs 4–5) requires Python and a small Python project to test against. Complete these steps before proceeding.
+
+#### Install Python 3.9+
+
+- Download from <https://www.python.org/downloads/>.
+- During installation on Windows, **check "Add Python to PATH"**.
+- Verify:
+
+  ```bash
+  python --version
+  pip --version
+  ```
+
+#### Create the Python Project Files
+
+Create the following files in your repository. These provide the calculator module and test suite used in this lab and subsequent labs.
+
+**Create the folder structure:**
+
+```bash
+mkdir -p src tests
+```
+
+**Create `requirements.txt`** (in the repository root):
+
+```
+# --- Testing Framework ---
+pytest==8.0.0
+pytest-cov==4.1.0
+```
+
+**Create `src/__init__.py`:** (empty file)
+
+```bash
+touch src/__init__.py
+```
+
+**Create `src/calculator.py`:**
+
+```python
+"""
+A simple calculator module for basic arithmetic operations.
+"""
+
+def add(a, b):
+    """Returns the sum of two numbers."""
+    return a + b
+
+def subtract(a, b):
+    """Returns the difference of two numbers."""
+    return a - b
+
+def multiply(a, b):
+    """Returns the product of two numbers."""
+    return a * b
+
+def divide(a, b):
+    """Returns the quotient of two numbers. Raises ValueError on division by zero."""
+    if b == 0:
+        raise ValueError("Cannot divide by zero!")
+    return a / b
+```
+
+**Create `tests/__init__.py`:** (empty file)
+
+```bash
+touch tests/__init__.py
+```
+
+**Create `tests/test_math.py`:**
+
+```python
+from src.calculator import add, subtract, multiply, divide
+import pytest
+
+def test_add():
+    assert add(10, 5) == 15
+
+def test_subtract():
+    assert subtract(10, 5) == 5
+
+def test_multiply():
+    assert multiply(10, 5) == 50
+
+def test_divide():
+    assert divide(10, 5) == 2
+
+def test_divide_by_zero():
+    with pytest.raises(ValueError):
+        divide(10, 0)
+```
+
+**Commit and push the source files:**
+
+```bash
+git add requirements.txt src/ tests/
+git commit -m "Add Python calculator module and test suite"
+git push
+```
 
 ### Concepts Covered
 
@@ -1196,7 +1127,14 @@ A **composite action** bundles multiple steps into a single reusable action that
 
 #### Prerequisites
 
-- **Node.js 20+** must be installed locally to build the action (see [Prerequisites](#6-nodejs-20-for-lab-6--javascript-action)).
+- **Node.js 20+** must be installed locally to build the action.
+  - Download from <https://nodejs.org> (LTS version recommended).
+  - Verify:
+
+    ```bash
+    node --version
+    npm --version
+    ```
 
 #### Step 1 — Create the JavaScript Action
 
@@ -1348,7 +1286,16 @@ A **composite action** bundles multiple steps into a single reusable action that
 
 #### Prerequisites
 
-- **Docker Desktop** must be installed and **running** locally if you want to test the action locally (see [Prerequisites](#7-docker-desktop-for-labs-6-and-7)).
+- **Docker Desktop** must be installed and **running** locally if you want to test the action locally.
+  - Download from <https://www.docker.com/products/docker-desktop/>.
+  - Install and start Docker Desktop.
+  - Verify it's running:
+
+    ```bash
+    docker --version
+    ```
+
+  - **Important:** Docker Desktop must be **running** before starting this part.
 
 > **Note:** The GitHub-hosted runner already has Docker installed, so the workflow will run on GitHub regardless of your local Docker setup.
 
@@ -1494,17 +1441,86 @@ A **composite action** bundles multiple steps into a single reusable action that
 
 ### Part A — Azure DevOps Pipeline Migration (GitHub Actions Importer)
 
-The Azure DevOps pipeline file is located at **`azdo/azure-pipelines.yml`** in this repository. It contains a three-stage pipeline (Build → Test → Deploy) that we will convert to a GitHub Actions workflow.
+The Azure DevOps pipeline file at **`azdo/azure-pipelines.yml`** contains a three-stage pipeline (Build → Test → Deploy) that we will convert to a GitHub Actions workflow.
 
 #### Prerequisites
 
-1. **Docker Desktop** must be installed and **running** (see [Prerequisites](#7-docker-desktop-for-labs-6-and-7)).
+1. **Docker Desktop** must be installed and **running** (if you haven't already installed it in Lab 6 Part B, follow the instructions there).
    - The Actions Importer runs inside the `ghcr.io/actions-importer/cli:latest` Docker container.
    - Open Docker Desktop and make sure it says **"Docker Desktop is running"** before proceeding.
 
 2. **GitHub CLI** must be installed and authenticated (see [Prerequisites](#4-github-cli-gh)).
 
-3. **Install the Actions Importer CLI extension:**
+3. **Create the Azure DevOps pipeline file** — This is the file we will migrate. Create it now if you haven't already:
+
+   ```bash
+   mkdir -p azdo
+   ```
+
+   **Create `azdo/azure-pipelines.yml`:**
+
+   ```yaml
+   trigger:
+   - main
+
+   pool:
+     vmImage: 'ubuntu-latest'
+
+   variables:
+     buildConfiguration: 'Release'
+     deploymentEnv: 'Staging'
+
+   stages:
+   - stage: Build
+     displayName: 'Build and Unit Test'
+     jobs:
+     - job: BuildJob
+       displayName: 'Compile Source'
+       steps:
+       - script: echo "Restoring dependencies..."
+         displayName: 'Restore'
+       
+       - script: echo "Running build in $(buildConfiguration) mode..."
+         displayName: 'Build'
+
+       - task: PublishBuildArtifacts@1
+         inputs:
+           PathtoPublish: '$(Build.ArtifactStagingDirectory)'
+           ArtifactName: 'drop'
+           publishLocation: 'Container'
+
+   - stage: Test
+     displayName: 'Integration Tests'
+     dependsOn: Build
+     jobs:
+     - job: RunTests
+       steps:
+       - script: echo "Running integration tests for $(deploymentEnv)..."
+         displayName: 'Test Step'
+
+   - stage: Deploy
+     displayName: 'Deploy to Staging'
+     dependsOn: Test
+     condition: succeeded()
+     jobs:
+     - deployment: DeployWeb
+       environment: 'Staging'
+       strategy:
+         runOnce:
+           deploy:
+             steps:
+             - script: echo "Deploying to Azure App Service..."
+   ```
+
+   **Commit and push:**
+
+   ```bash
+   git add azdo/
+   git commit -m "Add Azure DevOps pipeline for migration lab"
+   git push
+   ```
+
+4. **Install the Actions Importer CLI extension:**
 
    Open a terminal in VS Code and run:
 
