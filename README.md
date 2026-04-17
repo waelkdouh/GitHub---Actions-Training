@@ -715,7 +715,7 @@ After the run completes, check each of the four optimizations:
 
 ## Lab 4 – Environments
 
-**Goal:** Create a deployment pipeline with **staging** and **production** environments, including manual approval gates and environment-specific secrets.
+**Goal:** Create a deployment pipeline with **staging** and **production** environments, including manual approval gates, environment-specific secrets, and build artifacts.
 
 ### Concepts Covered
 
@@ -724,6 +724,8 @@ After the run completes, check each of the four optimizations:
 - Environment secrets
 - Job dependencies and conditional execution (`if:`)
 - The `environment:` keyword in jobs
+- Build artifacts (`actions/upload-artifact` / `actions/download-artifact`)
+- Deploying only production-relevant code (not the entire repo)
 
 ### Prerequisites — Create GitHub Environments
 
@@ -767,9 +769,11 @@ After the run completes, check each of the four optimizations:
    on:
      pull_request:
        branches: [ "main" ]
+     push:
+       branches: [ "main" ]
 
    jobs:
-     # 1. Build and Test Phase
+     # 1. Build Phase — install dependencies and create a deployment package
      build:
        runs-on: ubuntu-latest
        steps:
@@ -784,43 +788,65 @@ After the run completes, check each of the four optimizations:
              python -m pip install --upgrade pip
              pip install -r requirements.txt
 
-     # 2. Deploy to Staging (Triggered automatically on push/PR)
+         - name: Create deployment package
+           run: |
+             # Zip only the application code and dependencies — exclude tests,
+             # CI/CD files, and other non-production artifacts.
+             zip -r release.zip src/ requirements.txt -x "*.pyc" "__pycache__/*"
+
+         - name: Upload artifact for deployment jobs
+           uses: actions/upload-artifact@v4
+           with:
+             name: python-app
+             path: release.zip
+
+     # 2. Deploy to Staging
      deploy-staging:
        needs: build
        runs-on: ubuntu-latest
        environment:
          name: staging
          url: https://GithubActionsWS.azurewebsites.net
-       
        steps:
-         - uses: actions/checkout@v4
+         - name: Download artifact
+           uses: actions/download-artifact@v4
+           with:
+             name: python-app
 
          - name: 'Deploy to Azure Web App (Staging)'
            uses: azure/webapps-deploy@v2
            with:
              app-name: 'GithubActionsWS'
              publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-             package: .
+             package: release.zip
 
-     # 3. Deploy to Production (Requires Manual Approval Gate)
+     # 3. Deploy to Production (only on merge to main)
      deploy-production:
        needs: deploy-staging
-       if: github.ref == 'refs/heads/main'
+       if: |
+         github.ref == 'refs/heads/main' && 
+         (contains(github.event.head_commit.message, 'Merge pull request') || 
+          contains(github.event.head_commit.message, 'Merge branch'))
        runs-on: ubuntu-latest
        environment:
          name: production
          url: https://GithubActionsWS-Prod.azurewebsites.net
        
        steps:
-         - uses: actions/checkout@v4
+         - name: Download artifact
+           uses: actions/download-artifact@v4
+           with:
+             name: python-app
 
          - name: 'Deploy to Azure Web App (Production)'
            uses: azure/webapps-deploy@v2
            with:
              app-name: 'GithubActionsWS-Prod'
              publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
-             package: .
+             package: release.zip
    ```
+
+   > **Why `release.zip` instead of `package: .`?** Using `package: .` deploys the entire repo root — including `.github/`, `tests/`, `azdo/`, and `README.md` — none of which belong in production. The build job zips only `src/` and `requirements.txt` into `release.zip`, uploads it as an artifact, and the deploy jobs download and deploy just that zip. This ensures only production-relevant code reaches Azure.
 
 3. Commit and push:
 
@@ -832,7 +858,7 @@ After the run completes, check each of the four optimizations:
 
 ### Step 2 — Trigger the Workflow
 
-This workflow triggers on **pull requests** to `main`. To trigger it:
+This workflow triggers on both **pull requests** and **pushes** to `main`. To trigger it:
 
 1. Create a new branch:
 
@@ -860,17 +886,20 @@ This workflow triggers on **pull requests** to `main`. To trigger it:
 
 1. Go to the **Actions** tab and click on the workflow run.
 2. You will see three jobs:
-   - **build** — installs dependencies.
-   - **deploy-staging** — deploys to the staging environment (may require your approval if you set up a reviewer).
-   - **deploy-production** — deploys to production (requires manual approval).
+   - **build** — installs dependencies, creates `release.zip`, and uploads the artifact.
+   - **deploy-staging** — downloads the artifact and deploys to the staging environment (may require your approval if you set up a reviewer).
+   - **deploy-production** — downloads the artifact and deploys to production (requires manual approval). This job only runs on pushes to `main` that contain a merge commit message.
 3. If you added yourself as a reviewer, you will see a **Review deployments** button. Click it and approve to continue.
+4. On the workflow summary page, you can see the uploaded **python-app** artifact under the Artifacts section.
 
 ### What You Learned
 
 - **Environments** in GitHub let you add protection rules like manual approvals.
 - Each environment can have its own secrets (e.g., different publish profiles for staging vs. production).
 - `needs:` chains the jobs: build → staging → production.
-- `if: github.ref == 'refs/heads/main'` restricts production deployment to the main branch only.
+- **Build artifacts** (`upload-artifact` / `download-artifact`) pass the deployment package between jobs — each job runs on a fresh runner, so files don't persist automatically.
+- Zipping only `src/` and `requirements.txt` ensures you deploy only production code, not the entire repository.
+- The production `if:` condition uses `contains()` to check the commit message, restricting production deploys to merge commits on `main`.
 
 ---
 
