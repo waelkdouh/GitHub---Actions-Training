@@ -34,6 +34,7 @@ jobs:
 
   deploy-staging:
     needs: build
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     environment:
       name: staging
@@ -52,10 +53,9 @@ jobs:
           package: release.zip
 
   deploy-production:
-    needs: deploy-staging
-    # RESTRICTION: Must be a push to main AND the commit message must contain "Merge pull request" 
-    # or follow the GitHub "Merge branch '...' of ..." pattern.
-    if: |
+    needs: build
+    if: >-
+      github.event_name == 'push' && 
       github.ref == 'refs/heads/main' && 
       (contains(github.event.head_commit.message, 'Merge pull request') || 
        contains(github.event.head_commit.message, 'Merge branch'))
