@@ -518,7 +518,7 @@ GitHub---Actions-Training/
 
 ## Lab 3 – Python Quality Checks and Package Testing
 
-**Goal:** Create a **reusable workflow** for Python linting/type-checking and a **caller workflow** that invokes it before running a test matrix across multiple operating systems and Python versions.
+**Goal:** Create a **reusable workflow** for Python linting/type-checking and a **caller workflow** that invokes it before running a test matrix across multiple operating systems and Python versions. Along the way, you will implement two important GitHub Actions features: **Starter/Reusable Workflows** and **Log Management Optimizations for Matrix Builds**.
 
 ### Concepts Covered
 
@@ -528,6 +528,40 @@ GitHub---Actions-Training/
 - Matrix strategy (`strategy.matrix`)
 - `workflow_dispatch` inputs (choice type)
 - Python setup, linting (`flake8`), and type checking (`mypy`)
+- Log groups, annotations, logging levels, and artifact retention
+
+---
+
+### GitHub Features Demonstrated in This Lab
+
+This lab is specifically designed to showcase two important GitHub Actions capabilities. As you build the workflows below, pay attention to how each feature is implemented in the YAML.
+
+#### Feature 1 — Starter Workflows (Reusable Workflows)
+
+Since your team builds **Python applications**, a "Linter and Type Checker" is the perfect candidate for a **reusable workflow**. It ensures that every project follows the same PEP 8 standards and type safety rules without every developer having to manually configure the same complex steps in every repo.
+
+The key mechanism is **`workflow_call`** — this is the "secret sauce" that allows other workflows to pull this logic in. When a workflow uses `on: workflow_call`, it becomes a **callable template** that any other workflow in the organization can invoke.
+
+> **Important Distinction:** Reusable workflows **cannot** be called inside a step. They are called at the **job level** using the `uses:` keyword on a job. This is actually better because it cleanly separates your **"Standard Checks"** (Linting/Mypy) from your **"Environment Tests"** (Pytest on different OSs). Each concern gets its own job with its own runner and its own logs.
+
+In this lab:
+- **`python-standard-checks.yml`** is the reusable workflow (the starter template).
+- **`Python Package Testing.yml`** calls it at the job level before running the matrix tests.
+
+#### Feature 2 — Log Management for Matrix Builds
+
+Since the caller workflow uses a **matrix** (testing across multiple OSs and Python versions), it can generate a **massive amount of logs**, making it very difficult to find why a specific combination failed. This lab implements four log management optimizations:
+
+| # | Optimization | How It's Implemented |
+|---|---|---|
+| 1 | **Minimize Noise with Groups** | The "Install dependencies" step wraps its output in `::group::` / `::endgroup::` markers so package-download noise stays collapsed unless you need to debug a dependency issue. |
+| 2 | **Annotations for Test Failures** | The workflow installs `pytest-github-actions-annotate-failures`, which turns pytest failures into **annotations** that appear directly on the workflow Summary page — no more scrolling through console output. |
+| 3 | **Logging Levels for Debugging** | Since this is a `workflow_dispatch` (manual) trigger, it exposes a **`log_level`** input so the user can choose `INFO` or `DEBUG` verbosity when they click "Run workflow." |
+| 4 | **Retention Policy for Test Artifacts** | The workflow uploads HTML test reports as **artifacts** with a short retention period (7 days) so you don't waste storage on successful runs that are weeks old. |
+
+Additionally, every `run:` step uses **`shell: bash`** to ensure scripts are cross-compatible between Ubuntu and Windows runners in the matrix.
+
+---
 
 ### Dependency Between the Two Files
 
@@ -537,7 +571,11 @@ GitHub---Actions-Training/
 >
 > **Flow:** `Python Package Testing.yml` → calls → `python-standard-checks.yml` → on success → runs matrix tests.
 
+---
+
 ### Step 1 — Create the Reusable Workflow
+
+> **🔑 Feature 1 in action:** Notice the `on: workflow_call:` trigger below. This is what makes this workflow reusable. It accepts **inputs** (like `python-version`) and optional **secrets** so callers can customize it.
 
 1. Create the file `.github/workflows/python-standard-checks.yml`.
 2. Paste the following content:
@@ -545,6 +583,11 @@ GitHub---Actions-Training/
    ```yaml
    name: Reusable Python Quality Check
 
+   # ──────────────────────────────────────────────────────────────
+   # FEATURE: Starter / Reusable Workflow
+   # workflow_call is the "secret sauce" — it turns this file into
+   # a callable template that other workflows invoke at the JOB level.
+   # ──────────────────────────────────────────────────────────────
    on:
      workflow_call:
        inputs:
@@ -590,6 +633,8 @@ GitHub---Actions-Training/
 
 ### Step 2 — Create the Caller Workflow
 
+> **🔑 Both features in action:** This workflow demonstrates (a) calling a reusable workflow at the **job level** with `uses:`, and (b) all four **log management optimizations** in the matrix test job.
+
 1. Create the file `.github/workflows/Python Package Testing.yml`.
 2. Paste the following content:
 
@@ -597,6 +642,11 @@ GitHub---Actions-Training/
    name: Python Package Testing
 
    on: 
+     # ──────────────────────────────────────────────────────────
+     # LOG OPTIMIZATION 3: Logging Levels for Debugging
+     # workflow_dispatch lets the user choose verbosity (INFO or
+     # DEBUG) when they manually trigger the workflow.
+     # ──────────────────────────────────────────────────────────
      workflow_dispatch:
        inputs:
          log_level:
@@ -606,15 +656,18 @@ GitHub---Actions-Training/
            options: [INFO, DEBUG]
 
    jobs:
-     # 1. Call the Reusable Workflow for standard linting/type checking
-     # This ensures the code is clean before we waste time/money testing on Windows/macOS
+     # ──────────────────────────────────────────────────────────
+     # FEATURE: Reusable Workflow — called at the JOB level
+     # This is NOT a step — it's a full job that delegates to
+     # python-standard-checks.yml. This cleanly separates
+     # "Standard Checks" from "Environment Tests".
+     # ──────────────────────────────────────────────────────────
      static-analysis:
        uses: <YOUR-USERNAME>/GitHub---Actions-Training/.github/workflows/python-standard-checks.yml@main
        with:
          python-version: "3.11"
 
      # 2. Run the Matrix Tests
-     # We add 'needs: static-analysis' so tests only run if the code passes PEP 8
      test:
        needs: static-analysis
        name: Test on ${{ matrix.os }} with Python ${{ matrix.python-version }}
@@ -634,19 +687,45 @@ GitHub---Actions-Training/
            with:
              python-version: ${{ matrix.python-version }}
 
+         # ──────────────────────────────────────────────────────
+         # LOG OPTIMIZATION 1: Minimize Noise with Groups
+         # Wrapping dependency install in ::group:: keeps the
+         # noisy package-download output collapsed by default.
+         # ──────────────────────────────────────────────────────
          - name: Install dependencies
-           # Force Bash so the 'if' statement works on Windows
            shell: bash
            run: |
+             echo "::group::Installing pip packages"
              python -m pip install --upgrade pip
              if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
-             pip install pytest pytest-github-actions-annotate-failures
+             pip install pytest pytest-html pytest-github-actions-annotate-failures
+             echo "::endgroup::"
 
+         # ──────────────────────────────────────────────────────
+         # LOG OPTIMIZATION 2 & 3: Annotations + Log Level
+         # pytest-github-actions-annotate-failures turns test
+         # failures into Summary-page annotations automatically.
+         # --log-level is driven by the workflow_dispatch input.
+         # ──────────────────────────────────────────────────────
          - name: Run tests
-           # Added shell: bash here as well for consistency across the matrix
            shell: bash
            run: |
-             pytest --log-level=${{ github.event.inputs.log_level }}
+             pytest --tb=short \
+               --log-level=${{ github.event.inputs.log_level }} \
+               --html=report.html --self-contained-html
+
+         # ──────────────────────────────────────────────────────
+         # LOG OPTIMIZATION 4: Retention Policy for Artifacts
+         # Upload HTML test reports but keep them only 7 days
+         # to avoid wasting storage on old successful runs.
+         # ──────────────────────────────────────────────────────
+         - name: Upload Test Report
+           if: always()
+           uses: actions/upload-artifact@v4
+           with:
+             name: test-report-${{ matrix.os }}-py${{ matrix.python-version }}
+             path: report.html
+             retention-days: 7
    ```
 
    > **Important:** Replace `<YOUR-USERNAME>` with your actual GitHub username in the `uses:` line under the `static-analysis` job. For example:
@@ -654,11 +733,13 @@ GitHub---Actions-Training/
    > uses: waelkdouh/GitHub---Actions-Training/.github/workflows/python-standard-checks.yml@main
    > ```
 
+   > **Why `shell: bash` everywhere?** The matrix runs on both `ubuntu-latest` and `windows-latest`. By forcing `bash`, the `if [ -f ... ]` syntax and `\` line continuations work identically on both OSs. Without this, Windows would default to PowerShell and the scripts would fail.
+
 3. Commit and push:
 
    ```bash
    git add ".github/workflows/Python Package Testing.yml"
-   git commit -m "Add Python Package Testing workflow"
+   git commit -m "Add Python Package Testing workflow with log optimizations"
    git push
    ```
 
@@ -676,12 +757,28 @@ GitHub---Actions-Training/
    - **test** (6 jobs) — the matrix running across 2 OS × 3 Python versions = 6 combinations.
 3. If static analysis fails, the test jobs will be **skipped** (because of `needs: static-analysis`).
 
+### Step 5 — Verify the Log Optimizations
+
+After the run completes, check each of the four optimizations:
+
+1. **Groups** — Click into any test job → expand the **"Install dependencies"** step. You should see a collapsible **"Installing pip packages"** group. The noisy pip output is hidden by default.
+2. **Annotations** — If a test fails, look at the **workflow Summary page**. The `pytest-github-actions-annotate-failures` plugin will have created annotations pointing to the exact test file and line number.
+3. **Log Level** — Run the workflow twice: once with `INFO` and once with `DEBUG`. Compare the pytest output — `DEBUG` will show significantly more detail.
+4. **Artifacts** — On the workflow run summary page, scroll to the bottom. You will see downloadable **test-report** artifacts for each matrix combination, set to expire after 7 days.
+
 ### What You Learned
 
-- `workflow_call` makes a workflow reusable — other workflows can call it.
-- `needs:` creates a dependency between jobs — `test` waits for `static-analysis`.
-- A matrix strategy lets you test on multiple OS/version combinations in parallel.
-- `fail-fast: false` means all matrix jobs run even if one fails.
+**Reusable Workflows (Starter Workflows):**
+- `workflow_call` makes a workflow reusable — other workflows can call it as a **job**, not a step.
+- This cleanly separates concerns: linting/type-checking in one job, matrix tests in another.
+- `needs:` creates a dependency — `test` waits for `static-analysis` to pass first.
+
+**Log Management for Matrix Builds:**
+- `::group::` / `::endgroup::` collapses noisy output so logs stay clean.
+- `pytest-github-actions-annotate-failures` turns failures into Summary-page annotations.
+- `workflow_dispatch` inputs let users control log verbosity at trigger time.
+- `actions/upload-artifact` with `retention-days` saves test reports without wasting long-term storage.
+- `shell: bash` on every step ensures cross-OS compatibility across the matrix.
 
 ---
 
