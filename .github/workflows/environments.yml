@@ -3,17 +3,15 @@ name: Python Deployment Pipeline
 on:
   pull_request:
     branches: [ "main" ]
-  push:
-    branches: [ "main" ]
+    types: [ opened, synchronize, reopened, closed ]
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Run on PR activity (open/update) OR when a PR is merged
     if: >-
-      github.event_name == 'pull_request' || 
-      (github.event_name == 'push' && 
-       (contains(github.event.head_commit.message, 'Merge pull request') || 
-        contains(github.event.head_commit.message, 'Merge branch')))
+      github.event.pull_request.merged == true || 
+      github.event.action != 'closed'
     steps:
       - uses: actions/checkout@v4
       - name: Set up Python
@@ -39,7 +37,8 @@ jobs:
 
   deploy-staging:
     needs: build
-    if: github.event_name == 'pull_request'
+    # Only deploy to staging on open/updated PRs (not on merge close)
+    if: github.event.pull_request.merged != true && github.event.action != 'closed'
     runs-on: ubuntu-latest
     environment:
       name: staging
@@ -59,11 +58,8 @@ jobs:
 
   deploy-production:
     needs: build
-    if: >-
-      github.event_name == 'push' && 
-      github.ref == 'refs/heads/main' && 
-      (contains(github.event.head_commit.message, 'Merge pull request') || 
-       contains(github.event.head_commit.message, 'Merge branch'))
+    # Only deploy to production when a PR is merged into main
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     environment:
       name: production
