@@ -1,4 +1,4 @@
-# GitHub Actions Training Labs -1
+# GitHub Actions Training Labs
 
 Welcome to the **GitHub Actions Training** workshop! This guide contains **eight hands-on labs** that will walk you through creating, running, and understanding GitHub Actions workflows — from the simplest "Hello World" to advanced topics like self-hosted runners, pipeline migration, and AI-powered agentic workflows.
 
@@ -715,40 +715,51 @@ After the run completes, check each of the four optimizations:
 
 ## Lab 4 – Environments
 
-**Goal:** Create a deployment pipeline with **staging** and **production** environments, including manual approval gates, environment-specific secrets, and build artifacts.
+**Goal:** Create a CI/CD pipeline with **development**, **staging**, and **production** environments, including manual approval gates, environment-specific secrets, and build artifacts. The pipeline uses `github.event_name` conditions to route deployments: PRs deploy to Development, merges deploy to Staging → Production.
 
 ### Concepts Covered
 
-- GitHub Environments
+- GitHub Environments (Development, Staging, Production)
 - Environment protection rules (manual approvers)
 - Environment secrets
 - Job dependencies and conditional execution (`if:`)
 - The `environment:` keyword in jobs
 - Build artifacts (`actions/upload-artifact` / `actions/download-artifact`)
 - Deploying only production-relevant code (not the entire repo)
+- Using `github.event_name` to route jobs to the correct environment
+- Running tests as part of the build before any deployment
 
 ### Prerequisites — Create GitHub Environments
 
-#### Create the "staging" Environment
+#### Create the "Development" Environment
 
 1. Go to your repository on GitHub.
 2. Click **Settings** → **Environments** (left sidebar).
 3. Click **New environment**.
-4. Name: `staging` → click **Configure environment**.
-5. (Optional) Add a protection rule:
+4. Name: `Development` → click **Configure environment**.
+5. Add an environment secret:
+   - Scroll down to **Environment secrets** → click **Add secret**.
+   - Name: `AZURE_WEBAPP_PUBLISH_PROFILE`
+   - Value: Paste the Azure Web App publish profile XML for your dev app (or use a placeholder like `placeholder-for-demo` if you don't have an Azure Web App).
+   - Click **Add secret**.
+
+#### Create the "Staging" Environment
+
+1. Back in **Settings** → **Environments**, click **New environment**.
+2. Name: `Staging` → click **Configure environment**.
+3. (Optional) Add a protection rule:
    - Under **Environment protection rules**, check **Required reviewers**.
    - Add your own GitHub username as a reviewer.
    - Click **Save protection rules**.
-6. Add an environment secret:
-   - Scroll down to **Environment secrets** → click **Add secret**.
+4. Add an environment secret:
    - Name: `AZURE_WEBAPP_PUBLISH_PROFILE`
-   - Value: Paste your Azure Web App publish profile XML (or use a placeholder like `placeholder-for-demo` if you don't have an Azure Web App).
+   - Value: Paste the staging publish profile XML (or a placeholder).
    - Click **Add secret**.
 
-#### Create the "production" Environment
+#### Create the "Production" Environment
 
 1. Back in **Settings** → **Environments**, click **New environment**.
-2. Name: `production` → click **Configure environment**.
+2. Name: `Production` → click **Configure environment**.
 3. Under **Environment protection rules**, check **Required reviewers**.
 4. Add your own GitHub username as a reviewer → click **Save protection rules**.
 5. Add the same environment secret:
@@ -756,7 +767,7 @@ After the run completes, check each of the four optimizations:
    - Value: Paste the production publish profile XML (or a placeholder).
    - Click **Add secret**.
 
-> **Note:** If you don't have an Azure Web App, you can still create the environments and secrets with placeholder values. The workflow will demonstrate the environment approval gates even if the actual deployment step fails.
+> **Note:** If you don't have Azure Web Apps, you can still create the environments and secrets with placeholder values. The workflow will demonstrate the environment approval gates even if the actual deployment step fails.
 
 ### Step 1 — Create the Workflow File
 
@@ -764,101 +775,134 @@ After the run completes, check each of the four optimizations:
 2. Paste the following content:
 
    ```yaml
-   name: Python Deployment Pipeline
+   name: CI/CD Pipeline
 
    on:
      pull_request:
-       branches: [ "main" ]
+       branches: [ main ]
      push:
-       branches: [ "main" ]
+       branches: [ main ]
 
    jobs:
-     # 1. Build Phase — install dependencies and create a deployment package
-     build:
+     # --- STAGE 0: BUILD & TEST ---
+     build-and-test:
        runs-on: ubuntu-latest
        steps:
          - uses: actions/checkout@v4
+
          - name: Set up Python
            uses: actions/setup-python@v5
            with:
-             python-version: '3.14'
+             python-version: '3.11'
 
          - name: Install dependencies
            run: |
              python -m pip install --upgrade pip
-             pip install -r requirements.txt
+             pip install pytest
+             if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-         - name: Create deployment package
+         - name: Run Tests
+           # Adding the current directory to PYTHONPATH allows 'tests' to find 'src' modules
            run: |
-             # Zip only the application code and dependencies — exclude tests,
-             # CI/CD files, and other non-production artifacts.
-             zip -r release.zip src/ requirements.txt -x "*.pyc" "__pycache__/*"
+             export PYTHONPATH=$PYTHONPATH:$(pwd)
+             pytest tests/
 
-         - name: Upload artifact for deployment jobs
+         - name: Package Application
+           # Packages the src folder and other necessary files for Azure
+           run: zip -r release.zip . -x ".git/*" ".github/*" "tests/*"
+
+         - name: Upload artifact
            uses: actions/upload-artifact@v4
            with:
              name: python-app
              path: release.zip
 
-     # 2. Deploy to Staging
-     deploy-staging:
-       needs: build
+     # --- STAGE 1: DEVELOPMENT (PR ONLY) ---
+     development:
+       if: github.event_name == 'pull_request'
+       needs: build-and-test
        runs-on: ubuntu-latest
        environment:
-         name: staging
-         url: https://GithubActionsWS.azurewebsites.net
+         name: Development
+         url: https://githubactionsws-dev-b9h9gxgyc5ayc6cw.canadacentral-01.azurewebsites.net
+
        steps:
          - name: Download artifact
            uses: actions/download-artifact@v4
            with:
              name: python-app
 
-         - name: 'Deploy to Azure Web App (Staging)'
-           uses: azure/webapps-deploy@v2
+         - name: 'Deploy to Azure Web App: Dev'
+           uses: azure/webapps-deploy@v3
            with:
-             app-name: 'GithubActionsWS'
+             app-name: 'GithubActionsWS-Dev'
              publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
              package: release.zip
 
-     # 3. Deploy to Production (only on merge to main)
-     deploy-production:
-       needs: deploy-staging
-       if: |
-         github.ref == 'refs/heads/main' && 
-         (contains(github.event.head_commit.message, 'Merge pull request') || 
-          contains(github.event.head_commit.message, 'Merge branch'))
+     # --- STAGE 2: STAGING (MERGE TO MAIN) ---
+     staging:
+       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+       needs: build-and-test
        runs-on: ubuntu-latest
        environment:
-         name: production
-         url: https://GithubActionsWS-Prod.azurewebsites.net
-       
+         name: Staging
+         url: https://githubactionsws-staging-hxe4f0byeqa3ece8.canadacentral-01.azurewebsites.net
+
        steps:
          - name: Download artifact
            uses: actions/download-artifact@v4
            with:
              name: python-app
 
-         - name: 'Deploy to Azure Web App (Production)'
-           uses: azure/webapps-deploy@v2
+         - name: 'Deploy to Azure Web App: Staging'
+           uses: azure/webapps-deploy@v3
+           with:
+             app-name: 'GithubActionsWS-Staging'
+             publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+             package: release.zip
+
+     # --- STAGE 3: PRODUCTION (MERGE TO MAIN) ---
+     production:
+       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+       needs: staging
+       runs-on: ubuntu-latest
+       environment:
+         name: Production
+         url: https://githubactionsws-prod-fbh5ekfya8fzeta5.canadacentral-01.azurewebsites.net
+
+       steps:
+         - name: Download artifact
+           uses: actions/download-artifact@v4
+           with:
+             name: python-app
+
+         - name: 'Deploy to Azure Web App: Production'
+           uses: azure/webapps-deploy@v3
            with:
              app-name: 'GithubActionsWS-Prod'
              publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
              package: release.zip
    ```
 
-   > **Why `release.zip` instead of `package: .`?** Using `package: .` deploys the entire repo root — including `.github/`, `tests/`, `azdo/`, and `README.md` — none of which belong in production. The build job zips only `src/` and `requirements.txt` into `release.zip`, uploads it as an artifact, and the deploy jobs download and deploy just that zip. This ensures only production-relevant code reaches Azure.
+   > **How does routing work?** The workflow triggers on both `pull_request` and `push`. The `if:` conditions on each deploy job determine which environment receives the deployment:
+   > - **`pull_request`** event → only the **Development** job runs (staging and production are skipped).
+   > - **`push`** event to `main` (i.e., after merging a PR) → only **Staging** and **Production** run (development is skipped).
+   >
+   > This means Development is never re-deployed after merging, and Staging/Production are never deployed during PR review.
+
+   > **Why exclude `.git/*`, `.github/*`, and `tests/*` from the zip?** These are CI/CD and development files that don't belong in the deployed application. The `zip -r release.zip . -x ...` command packages everything except those directories.
 
 3. Commit and push:
 
    ```bash
    git add .github/workflows/environments.yml
-   git commit -m "Add environments workflow"
+   git commit -m "Add CI/CD pipeline with environments"
    git push
    ```
 
 ### Step 2 — Trigger the Workflow
 
-This workflow triggers on both **pull requests** and **pushes** to `main`. To trigger it:
+To trigger the Development deployment:
 
 1. Create a new branch:
 
@@ -882,24 +926,35 @@ This workflow triggers on both **pull requests** and **pushes** to `main`. To tr
 
 4. Go to GitHub and create a **Pull Request** from `feature/test-environments` → `main`.
 
-### Step 3 — View the Results
+### Step 3 — View the Results (PR)
 
-1. Go to the **Actions** tab and click on the workflow run.
-2. You will see three jobs:
-   - **build** — installs dependencies, creates `release.zip`, and uploads the artifact.
-   - **deploy-staging** — downloads the artifact and deploys to the staging environment (may require your approval if you set up a reviewer).
-   - **deploy-production** — downloads the artifact and deploys to production (requires manual approval). This job only runs on pushes to `main` that contain a merge commit message.
-3. If you added yourself as a reviewer, you will see a **Review deployments** button. Click it and approve to continue.
-4. On the workflow summary page, you can see the uploaded **python-app** artifact under the Artifacts section.
+1. Go to the **Actions** tab and click on the workflow run triggered by the PR.
+2. You will see:
+   - **build-and-test** — checks out code, installs dependencies, runs `pytest`, creates `release.zip`, and uploads the artifact.
+   - **development** — downloads the artifact and deploys to the Development environment.
+   - **staging** — **skipped** (because this is a `pull_request` event).
+   - **production** — **skipped** (because this is a `pull_request` event).
+3. If you added yourself as a reviewer on the Development environment, you will see a **Review deployments** button. Click it and approve to continue.
+
+### Step 4 — Merge and View the Results (Push)
+
+1. After reviewing the Development deployment, merge the Pull Request on GitHub.
+2. Go back to the **Actions** tab — a new workflow run is triggered by the `push` event.
+3. You will see:
+   - **build-and-test** — runs again to produce a fresh artifact from the merged code.
+   - **development** — **skipped** (because this is a `push` event).
+   - **staging** — downloads the artifact and deploys to Staging (may require approval).
+   - **production** — after Staging succeeds, downloads the artifact and deploys to Production (requires approval).
+4. Approve each environment deployment when prompted.
 
 ### What You Learned
 
 - **Environments** in GitHub let you add protection rules like manual approvals.
-- Each environment can have its own secrets (e.g., different publish profiles for staging vs. production).
-- `needs:` chains the jobs: build → staging → production.
+- Each environment can have its own secrets (e.g., different publish profiles for Development, Staging, and Production).
+- `github.event_name` lets you route jobs to specific trigger types — Development only on PRs, Staging/Production only on push to main.
 - **Build artifacts** (`upload-artifact` / `download-artifact`) pass the deployment package between jobs — each job runs on a fresh runner, so files don't persist automatically.
-- Zipping only `src/` and `requirements.txt` ensures you deploy only production code, not the entire repository.
-- The production `if:` condition uses `contains()` to check the commit message, restricting production deploys to merge commits on `main`.
+- Running `pytest` in the build job ensures tests pass **before** any deployment happens.
+- `needs:` chains the jobs: build-and-test → staging → production (on push), ensuring staging must succeed before production deploys.
 
 ---
 
